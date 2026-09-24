@@ -13,8 +13,8 @@ startgroup
     animation_start os-window-focus-in
     animation_stop os-window-focus-out
     animation_step 0
-    var float FADE_DESAT 0.20
-    var float FADE_DIM 1.0
+    var float FADE_DESAT 1.0
+    var float FADE_DIM 0.5
     var float FADE_EDGE_PX 1.5
     shaders fade
 endgroup

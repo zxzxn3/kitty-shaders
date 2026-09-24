@@ -12,7 +12,7 @@ startgroup
     animation_stop os-window-focus-in
     animation_step 0
     var bool WHOLE_WINDOW true
-    var float FADE_DESAT 0.20
-    var float FADE_DIM 1.0
+    var float FADE_DESAT 1.0
+    var float FADE_DIM 0.5
     shaders fade
 endgroup
