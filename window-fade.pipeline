@@ -12,7 +12,9 @@ startgroup
     animation_stop os-window-focus-in
     animation_step 0
     var bool WHOLE_WINDOW true
-    var float FADE_DESAT 1.0
-    var float FADE_DIM 0.5
+    # 0.20 低于可感知阈值（白字不受影响，只有彩色内容会变，太淡就看不出来）；
+    # 0.50 确认过"正常"。0.92 这种亮度值能让黑白内容也有反应，但那是改亮度，默认不用。
+    var float FADE_DESAT 0.45
+    var float FADE_DIM 1.0
     shaders fade
 endgroup
