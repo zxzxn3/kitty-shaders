@@ -1,50 +1,27 @@
-# inactive-fade —— 不活跃的东西会慢慢褪色：
-#   * 失去焦点的 OS 窗口：整个窗口褪色
-#   * 当前 OS 窗口里没聚焦的分屏：那些分屏褪色（活动分屏始终正常）
+# inactive-fade —— 不活跃的部分暗一档，就这么多。
 #
-# 两个维度各出一个写入组，写同一块 persist.g，最后只有一个 apply 组真正上色，
-# 所以同时存在时不会叠加两次。
+# 没有渐变、没有计时、没有跨帧状态，所以也没有「时间参数必须和动画窗口配套」
+# 这类耦合。两个组互斥，各自只在对应的状态下活跃，所以永远只上色一次：
+#   失焦期间   → 整窗暗一档
+#   有焦点期间 → 没聚焦的分屏暗一档（活动分屏照常）
 #
-# 两个写入组是互斥的（各自把对方的触发条件当作停止条件），所以不会抢同一块 scratch。
-# 通道约定：persist.r = 墨量（ink-stain），persist.g = 褪色程度，persist.a = 1.0 哨兵。
+# 两者都只用事件、不写时长。animation_step 0 = 不申请周期性帧
+# （kitty 内部把它转成 MONOTONIC_T_MAX），只在别的原因触发重绘时跟着走；
+# 焦点变化本身就会触发重绘，所以效果立刻出现，空闲时零开销。
 
-textures b persist
-
-# 1) 窗口维度：失焦后 5 秒把褪色程度从 0 推到 1；重新聚焦或 5 秒后停止。
+# 失焦：整个窗口暗一档
 startgroup
     animation_start os-window-focus-out
-    animation_stop os-window-focus-in | 5000
-    animation_curve ease-out
-    animation_step 50
-    shaders inactive-fade-window
-    output_texture b
-endgroup
-
-# 2) 并回 persist
-startgroup
-    attach
-    shaders inactive-fade-commit
-    output_texture persist
-endgroup
-
-# 3) 分屏维度：分屏获得焦点或窗口重新获得焦点时，活动分屏内清零、其余继续累积。
-startgroup
-    animation_start window-focus-in | os-window-focus-in
-    animation_stop os-window-focus-out | 5000
-    animation_step 50
-    shaders inactive-fade-panes
-    output_texture b
-endgroup
-
-# 4) 并回 persist
-startgroup
-    attach
-    shaders inactive-fade-commit
-    output_texture persist
-endgroup
-
-# 5) 应用。常驻但 animation_step 0 = 不申请周期性帧，只在别的重绘发生时跟着走。
-startgroup
+    animation_stop os-window-focus-in
     animation_step 0
-    shaders inactive-fade-apply
+    var bool WHOLE_WINDOW true
+    shaders inactive-fade
+endgroup
+
+# 有焦点：只有没聚焦的分屏暗一档
+startgroup
+    animation_start os-window-focus-in
+    animation_stop os-window-focus-out
+    animation_step 0
+    shaders inactive-fade
 endgroup
