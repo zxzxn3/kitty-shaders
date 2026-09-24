@@ -1,0 +1,26 @@
+# bg-drift —— 会缓慢漂移的背景。
+#
+# 单组、无状态：动画是 d.timestamp 的纯函数，所以不需要 persist，也没有时长参数。
+#
+# animation_step 200 = 5fps，它决定了 kitty 的重绘频率——这个效果一开，kitty 就不再
+# 空闲了。5fps 对几十秒周期的漂移看不出来（时间精确，只是画面每秒更新 5 次）。
+# 想更省电调到 400（2.5fps），想更顺滑调到 100。
+#
+# 位置：在 kitty.conf 的 custom_shaders 里必须排在 ink-stroke 之后、
+# layout-fade / window-fade 之前。原因写在 bg-drift.slang 的头部注释和 README。
+
+# ── 可调参数（这个效果的所有旋钮都在这里）──
+# 最亮处往画面加多少。0.06 是很淡的一层；0.12 就明显了；0 等于关掉。
+var float BG_PEAK 0.06
+# 相位每秒推进多少。0.15 约等于 42 秒一个周期；0.4 会明显快起来。
+var float BG_SPEED 0.15
+# 空间频率：大约每屏几个起伏。调大花纹变密。
+var float BG_SCALE 1.5
+# 两个颜色之间来回过渡。写法 float3(r, g, b)，范围 0..1。
+var float3 BG_COLOR_A float3(0.42, 0.72, 1.00)
+var float3 BG_COLOR_B float3(0.55, 0.95, 0.75)
+
+startgroup
+    animation_step 200
+    shaders bg-drift
+endgroup

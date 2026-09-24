@@ -1,13 +1,27 @@
 # kitty 自定义 shader
 
-四个效果，随便挑。都不使用命名纹理——没有 `persist`、没有临时纹理、没有跨帧状态。
+五个效果，随便挑。都不使用命名纹理——没有 `persist`、没有临时纹理、没有跨帧状态。
 
 | pipeline | 做什么 | 额外需要的 kitty 选项 |
 | --- | --- | --- |
 | `ink-stroke` | 光标移动时留下一道柔和的白色笔触 | `cursor_trail`、`cursor_trail_start_threshold 1` |
+| `bg-drift` | 会缓慢漂移的背景（会持续申请帧） | 无 |
 | `layout-fade` | 当前窗口里没聚焦的分屏，颜色往黑白去 | 无 |
 | `window-fade` | 失去焦点的那个 OS 窗口，整窗颜色往黑白去 | 无 |
 | `focus-pulse` | 窗口获得焦点时内容区边缘有一次很轻的呼吸 | 无 |
+
+### 顺序：`ink-stroke` → `bg-drift` → 两个 fade → `focus-pulse`
+
+`custom_shaders` 里的顺序不只是好看，有两个硬约束：
+
+* **`bg-drift` 必须在 `ink-stroke` 之后**。两者都用「和 `d.background` 比颜色」来
+  判断背景像素；如果背景图案先画上去，墨痕就认不出背景了，笔触会整个消失。
+* **`bg-drift` 必须在两个 fade 之前**。否则那两层的去饱和管不到它——失焦窗口的
+  背景图案会一直留着颜色，和「不活跃就褪色」的意图打架。
+
+还有一个连带的影响：如果哪天把 `FADE_DIM` 调到小于 1（压暗），背景像素的颜色会
+被那层压暗改变，`bg-drift` 的掩码（容差 0.02）就匹配不上了，图案会消失。真要用
+`FADE_DIM` 就得把 `bg-drift` 挪到 fade 前面，或者放宽它的 `BG_TOLERANCE`。
 
 ## 四个效果互相独立，按需挑
 
@@ -18,7 +32,7 @@ backbuffer，满足 kitty 对「最后一条管线最后一组」的要求。所
 * 每条管线单独也能加载（只留 `focus-pulse` 也行）
 * 组数是相加：1 + 1 + 1 + 1 = 4（上限 16）
 
-这不是推断：**15 种组合**（4 个单条 + 6 个两两 + 4 个三三 + 1 个全部）全部编译验证过。
+这不是推断：所有子集组合都编译验证过（5 个效果共 31 种）。
 
 `layout-fade` 和 `window-fade` 是两个独立管线，但共用同一个 shader 文件
 `fade.slang`，靠组内变量 `WHOLE_WINDOW` 区分行为——kitty 按「组 + shader」分别编译，
