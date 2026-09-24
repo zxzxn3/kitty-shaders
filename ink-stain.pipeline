@@ -1,0 +1,29 @@
+# ink-stain —— 墨痕：光标走过的地方留下白色水痕，慢慢干掉。
+# 背景保持原样，墨只洇在背景上，不压字。
+
+textures a persist
+
+# 1) 旧墨按真实时间变干，顺手落下这一笔 → 临时纹理 a
+startgroup
+    animation_start cursor-trail-move | user-activity
+    # 要和 accumulate 的 DRY_TIME 配套：约等于 4 倍才够墨干透
+    animation_stop 3200
+    animation_step 16
+    shaders ink-stain-accumulate
+    output_texture a
+endgroup
+
+# 2) 把 a 搬回 persist。同一趟不能又读又写 persist，所以必须分两趟。
+startgroup
+    attach
+    animation_step 16
+    shaders ink-stain-commit
+    output_texture persist
+endgroup
+
+# 3) 把墨洇进背景。attach 让这一组跟着上面两组一起启停，空闲时不占 GPU。
+startgroup
+    attach
+    animation_step 16
+    shaders ink-stain-composite
+endgroup
