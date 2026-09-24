@@ -1,0 +1,27 @@
+# star-hash —— 哈希星场背景（"格子哈希撒星星"，见 star-hash.slang 顶部）
+#
+# 单组、单趟、无状态：背景像素上叠一层星点，字一个像素都不碰；不用临时纹理。
+# 和 star-nest 是两种观感：这个是纯星场（密度/亮度完全可控、没有大光斑、便宜得多），
+# star-nest 有分形的星云絮状结构。两个都留着，想换就把下面这行换成 star-nest。
+#
+# ⚠ 和 cloud-bg / star-nest / bg-drift 只能开一个（都靠「和背景色比较」认背景）。
+# 位置：必须在 ink-stroke 之后、两个 fade 之前。
+
+# ── 四个旋钮，都在下面的组里 ──
+# STAR_CELL     格子边长（像素）。越小星越密（22 px 大约等于 1/15 屏宽一格）
+# STAR_DENSITY  有多大比例的格子有星（0.35 = 三成格子有星）
+# STAR_BRIGHT   最亮的星亮度（线性，直接叠在背景上；0.5 已经相当亮）
+# STAR_SPEED    漂移速度（像素/秒），0.0 = 完全静止（那就可以把 animation_step 设 0）
+#
+# 星点半径、冷暖白、银河带强弱收在 shader 里当常量：要动就改 star-hash.slang 顶部。
+
+startgroup
+    # 这个效果每像素只做 9 次哈希，比 star-nest 便宜两个数量级，所以帧率给足：
+    # 5fps + 2px/s 的漂移，看着是星星在缓缓滑过，而不是像分形那样"沸腾"。
+    animation_step 200
+    var float STAR_CELL 22.0
+    var float STAR_DENSITY 0.35
+    var float STAR_BRIGHT 0.50
+    var float STAR_SPEED 2.0
+    shaders star-hash
+endgroup
