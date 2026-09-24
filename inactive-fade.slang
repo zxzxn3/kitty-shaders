@@ -13,10 +13,12 @@ import kitty_custom_shader_types;
 
 // 是否整窗变暗。默认 false，pipeline 里的失焦组会覆盖成 true。
 static const bool WHOLE_WINDOW = false;
-// 暗到什么程度：0.68 表示保留 68% 亮度。
-static const float DIM = 0.68;
+// 暗到什么程度：0.80 表示保留 80% 亮度。
+// 线性 0.80 换算成 sRGB 大约是 0.92（白字 255 → 约 234），算是"暗一档"。
+// 想要更重就往 0.6 调，更轻就往 0.9 调。
+static const float DIM = 0.80;
 // 顺带去多少饱和。设成 0 就是纯粹压暗。
-static const float DESAT = 0.35;
+static const float DESAT = 0.22;
 // 分屏边界羽化多少像素，免得交界处出现硬边。
 static const float EDGE_FEATHER_PX = 1.5;
 

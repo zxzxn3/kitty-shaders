@@ -23,8 +23,10 @@ cursor_trail_start_threshold 1
 
 ## 改完怎么生效
 
-kitty 重载配置时会重新编译 shader，不用重启。重载方式：改一下 `kitty.conf` 让它
-自动重载，或者 `kill -SIGUSR1 $KITTY_PID`，或者按 `ctrl+shift+f5`。
+kitty 重载配置时会重新编译 shader，不用重启。但注意：**`auto_reload_config` 只监听
+配置文件本身，不监听 `shaders/` 目录**——只改 shader 文件不会自动生效。所以
+`kitty.conf` 里放了一个 `shader-rev` 计数，改 shader 时顺手把它 +1，自动重载就会
+被触发。也可以手动：`kill -SIGUSR1 $KITTY_PID`，或者按 `ctrl+shift+f5`。
 
 ---
 
@@ -65,13 +67,13 @@ grep -A3 'fragment_main_3_0_0' ~/.cache/kitty/shaders/*/glsl/end.frag.glsl
 
 | 参数 | 作用 |
 | --- | --- |
-| `DIM` | 暗到什么程度，0.68 = 保留 68% 亮度 |
+| `DIM` | 暗到什么程度，0.80 = 保留 80% 亮度（线性；约等于 sRGB 0.92） |
 | `DESAT` | 顺带去多少饱和，设 0 就是纯粹压暗 |
 | `EDGE_FEATHER_PX` | 分屏边界羽化多少像素（只对分屏那组有意义） |
 
 为什么默认要带一点去饱和：白色没有色相，把白字去饱和算出来还是白字。只有当屏幕上
 真有彩色内容（`ls` 的颜色、语法高亮、彩色提示符）时去饱和才看得出来，所以「明显
-看得出变化」靠的是 `DIM`。想更狠就把 `DIM` 调到 0.5、`DESAT` 调到 1.0。
+看得出变化」靠的是 `DIM`。想更狠就把 `DIM` 调到 0.6、`DESAT` 调到 1.0。
 
 ### 已知边界
 
