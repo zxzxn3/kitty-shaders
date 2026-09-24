@@ -113,6 +113,10 @@ fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
     }
 
     v = lerp(float3(length(v)), v, NEB_SAT);   // 原作 saturation
-    float3 col = clamp(v * NEB_COLOR_SCALE, 0.0, NEB_PEAK);
+    // 软上限（原作这里是硬钳）：亮的地方按指数压进 NEB_PEAK，低亮度几乎不受影响
+    // （x ≪ PEAK 时 1-exp(-x/PEAK) ≈ x/PEAK）。硬钳会在最亮那几团上压出一块
+    // 实心的白斑，指数版把它换成一段没有平台的渐变——"大光斑"的观感主要来自平台。
+    float peak = max(NEB_PEAK, 1e-4);
+    float3 col = peak * (1.0 - exp(-v * NEB_COLOR_SCALE / peak));
     return float4(lerp(color.rgb, col, bg * NEB_STRENGTH), color.a);
 }
