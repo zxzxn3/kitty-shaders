@@ -21,9 +21,6 @@ static const float FADE_DIM = 1.0;
 // 注意白字没有色相，去饱和对它完全没影响——这个效果只落在有颜色的内容上
 // （ls 的颜色、语法高亮、彩色提示符、图片）。
 static const float FADE_DESAT = 0.20;
-// 分屏边界羽化多少像素，免得交界处出现硬边。只对 layout-fade 那组有意义。
-static const float FADE_EDGE_PX = 1.5;
-
 public float4
 fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
     // outside = 这个像素该变淡的程度：1 表示它属于「不活跃」的部分。
@@ -33,8 +30,11 @@ fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
         if (g.z > 0.0 && g.w > 0.0) {
             float2 dd = min(t.pos - g.xy, g.xy + g.zw - t.pos);
             float dmin = min(dd.x, dd.y);
-            float feather = max(fwidth(dmin) * FADE_EDGE_PX, 1e-6);
-            outside = 1.0 - smoothstep(0.0, feather, dmin);
+            // 硬边界：dmin 在活动分屏内为正、外面为负。
+            // 不羽化是刻意的——分屏之间的空白区本来就是背景色，里面外面看起来一样；
+            // 羽化唯一可见的效果反而是把活动分屏最外面那 1 像素轻微褪色。
+            // 哪天看到接缝发毛，把这行换回 smoothstep 版本即可。
+            outside = 1.0 - step(0.0, dmin);
         }
     }
     if (outside <= 0.0) return color;
