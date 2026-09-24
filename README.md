@@ -4,6 +4,7 @@
 | --- | --- | --- |
 | `ink-stain` | 光标走过的地方洇开白色水痕，慢慢干掉 | `persist.r` = 墨量 |
 | `inactive-fade` | 失去焦点的窗口、没聚焦的分屏，颜色往黑白去 | 无，完全无状态 |
+| `keystroke-pulse` | 敲键盘时内容区边缘有一次很轻的呼吸 | 无，单组事件驱动 |
 
 只有 `ink-stain` 用 `persist`，而且只用 `.r`（墨量）和 `.a`（1.0 哨兵，用来分辨
 「我们写过这块像素」和「显存里是没初始化的垃圾」）。既然只有一个使用者，就不需要
@@ -150,6 +151,33 @@ animation_stop ≈ 4 × DRY_TIME
 
 订阅 `cursor-trail-move` 之后，kitty 内置的拖尾绘制会被完全抑制（shader 接管）。
 想让它回来共存，把 pipeline 第一组的 `animation_start` 改成只留 `user-activity`。
+
+---
+
+## keystroke-pulse —— 打字时边缘的呼吸
+
+敲键盘时，内容区（不含标签栏那一条）边缘浮起一条很淡的光带，约 700ms 起落一次。
+
+### 怎么做的
+
+单组、事件驱动、无状态：`animation_start user-activity` 配 `animation_stop 600`，
+强度按「到边缘的像素距离」衰减成 `BAND_PX` 宽的一条带，envelope 是
+`(1 - p) * smoothstep(0, ATTACK, p)`——平滑起手约 70ms，然后落下。
+
+`animation_step 16` 只在动画期间要帧，空闲时这个组不活跃，所以整体开销为零。连续
+打字时每次按键都会重启动画（kitty 的语义是新事件会把 `started_at` 重设），所以它
+会稳定在一个较低的水平上，停下后 600ms 内收干净——这是"呼吸"而不是"闪烁"。
+
+### 可调参数
+
+| 参数 | 作用 |
+| --- | --- |
+| `PEAK` | 最亮时叠多少，0.05 线性约等于 sRGB 0.24 |
+| `BAND_PX` | 光带宽度，像素 |
+| `ATTACK` | 起手用掉整段动画的比例，0.12 ≈ 70ms |
+
+它是在当前颜色上做加法（不动 alpha），所以在纯黑背景上就是一层很淡的灰。嫌它吵就
+把 `PEAK` 降到 0.02，或者直接从 `custom_shaders` 里去掉这个名字。
 
 ---
 
