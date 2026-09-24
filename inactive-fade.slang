@@ -18,7 +18,7 @@ static const float DIM = 1.0;
 // 0.5 保留 50%（明显但不刺眼），0.85 保留 15%（接近黑白）。
 // 注意白字没有色相，去饱和对它完全没影响——这个效果只落在有颜色的内容上
 // （ls 的颜色、语法高亮、彩色提示符、图片）。
-static const float DESAT = 0.50;
+static const float DESAT = 0.20;
 // 分屏边界羽化多少像素，免得交界处出现硬边。
 static const float EDGE_FEATHER_PX = 1.5;
 
