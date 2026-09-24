@@ -17,6 +17,10 @@
 # 其余都收进 shader 当常量了：迭代/步进数（性能旋钮）、雾 NEB_HAZE、饱和度 NEB_SAT、
 # 视场 NEB_ZOOM、亮度上限 NEB_PEAK。要动就改 star-nest.slang 顶部那几行。
 
+# 声明但不用：让这张命名纹理在启动时就存在。切换背景时纹理集合不变，
+# 就不会在"热重载时才新建纹理"这条路上踩到 cloud-bg 那个整屏被糊住的坑。
+textures a
+
 startgroup
     # 必须是周期帧，不能是 0：星野的相位来自 d.timestamp（真实时间），而 animation_step 0
     # 只让这一组在别的原因重绘时顺带跑一遍——那样"动没动"会被重绘频率绑架：
