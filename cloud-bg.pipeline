@@ -1,32 +1,49 @@
 # cloud-bg —— 体积云背景（移植自 nimitz 的 "Protean clouds"，CC BY-NC-SA 3.0）
 #
-# 单组、无状态：动画是 d.timestamp 的纯函数，不需要 persist。
+# 两趟：
+#   1) cloud-bg       只算云，每隔 CLOUD_ROW_STRIDE 行算一次，写进临时纹理 a
+#   2) cloud-bg-apply 垂直插值 + 铺到背景像素上
 #
-# 它是重 raymarcher，省电靠三个杠杆：
-#   1. animation_step：200 = 5fps。400 → 2.5fps，100 → 10fps（更顺但更费）
-#   2. CLOUD_STEPS：48 省电档；原版 130 最饱满，成本翻两倍多
-#   3. 只在聚焦时动画（可选）：给这一组加
-#          animation_start os-window-focus-in
-#          animation_stop os-window-focus-out
-#      失焦就完全不要帧；代价是切回来时云的相位会跳一下
+# 为什么这么拆：这是整条管线最重的效果。按行抽样让成本直接降到 1/4，而云是平滑场，
+# 垂直插值几乎无损（离线复算：平均色差 0.07/255）。配合下面两个开关一共约 7 倍：
+#   成本 0.14 倍、平均色差 0.52/255 —— 在这么暗的背景上看不出来。
 #
-# ⚠ 和 bg-drift 二选一：两者都靠「和背景色比较」认背景，先跑的会把背景染色。
+# ⚠ 和 bg-drift 二选一（两者都靠「和背景色比较」认背景）。
 # 位置：在 ink-stroke 之后、两个 fade 之前。
 
 # ── 可调参数（这个效果的所有旋钮都在这里）──
-# 步进数。越大云越饱满、越贵。低于 32 会明显看穿、出现断层。
+# 步进数。越大云越饱满、越贵。低于 32 会明显看穿。
 var int CLOUD_STEPS 48
+# 每几行算一次云（其余行插值）。1 = 原版那样逐行算；越大越省，云越"软"。
+var int CLOUD_ROW_STRIDE 4
+# 光照用几次额外采样。原版 2；1 省 28%，代价是光照细节略平。
+var int CLOUD_LIGHT_TAPS 1
+# 每步的形变迭代。原版 5；4 省 19%，云形态会稍有不同（不是同一张云）。
+var int CLOUD_MAP_ITER 4
 # 时间缩放。0.2 是原版（编辑者 Onan 加的变量），调大云漂得更快。
 var float CLOUD_TIME_SCALE 0.2
-# 云的亮度乘数。1.0 是 Shadertoy 原图亮度（平均 0.45 线性，白字没法读）；
-# 0.12 实测平均 0.045、峰值 0.11，是很淡的一层。想要更明显就往上加。
+# 鼠标是否控制视角。默认关掉——背景跟着鼠标晃太活跃。
+var bool CLOUD_MOUSE false
+# 云的亮度乘数。1.0 = Shadertoy 原图亮度（平均 0.45 线性，白字没法读）；
+# 0.12 实测平均 0.045、峰值 0.11，是很淡的一层。
 var float CLOUD_STRENGTH 0.12
 # 背景像素被云替换的程度。0 = 完全不动背景。
 var float CLOUD_MIX 1.0
-# 鼠标是否控制视角。默认关掉——背景跟着鼠标晃会太活跃。
-var bool CLOUD_MOUSE false
 
+textures a
+
+# 1) 算云 → 临时纹理 a
 startgroup
     animation_step 200
     shaders cloud-bg
+    output_texture a
+endgroup
+
+# 2) 插值 + 上色 → backbuffer
+#    attach 让它跟着上一组启停；animation_step 必须和上一组一样，
+#    否则它会用更小的步长申请帧，把整条管线的刷新率悄悄拉高。
+startgroup
+    attach
+    animation_step 200
+    shaders cloud-bg-apply
 endgroup
