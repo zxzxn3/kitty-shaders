@@ -1,0 +1,11 @@
+# pane-fade —— 聚焦在哪个分屏，哪个就正常显示；其它分屏颜色变淡。
+#
+# 无状态，不需要事件：每帧直接读 active_window_geometry。
+# animation_step 0 = 不申请周期性帧（kitty 内部转成 MONOTONIC_T_MAX），
+# 只在别的原因触发重绘时跟着走。切换分屏本身就会重绘，所以效果立刻跟上。
+# 自带的 dim-inactive-windows 用的是同一个套路。
+
+startgroup
+    animation_step 0
+    shaders pane-fade
+endgroup
