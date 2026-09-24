@@ -16,6 +16,27 @@
 四个背景类效果（`star-hash` / `star-nest` / `cloud-bg` / `bg-drift`）**互斥，只能开一个**：
 它们都靠「和背景色比较」来认背景，先跑的那个会把背景染色，后跑的那个就认不出来了。
 
+## 背景三选一：`star-hash` / `star-nest` / `cloud-bg`
+
+三个都在这个仓库里、都是随时可切的对等选项（`bg-drift` 是第四个，在自己的分支上）。
+
+| 效果 | 观感 | 每像素成本 | 什么时候挑它 |
+| --- | --- | --- | --- |
+| `star-hash` | 纯星点，密度/亮度/速度都是直接控制的，天然没有大团块 | 9 次哈希，无循环无开方 | 想要安静的深色背景；也最省 |
+| `star-nest` | 深空：星点 + 分形的星云絮状结构 | 224 次开方（原作的 1/3） | 想要"太空"那种质感 |
+| `cloud-bg` | 体积云，一直在缓慢流动 | 48 步 raymarcher（按行抽样后约 1/4） | 想要一眼能看出来的动态背景 |
+
+**切换方式**：`kitty.conf` 里三行留一行，另两行注释掉——
+
+```conf
+custom_shaders ink-stroke star-hash layout-fade window-fade focus-pulse
+# custom_shaders ink-stroke star-nest layout-fade window-fade focus-pulse
+# custom_shaders ink-stroke cloud-bg  layout-fade window-fade focus-pulse
+```
+
+这一行本身改动不需要动 `shader-rev`（配置文件变了就会自动重载）；只有改 `shaders/`
+里的文件才需要 +1。三者都验证过可以直接互换：各自与其余四条管线合并编译全部通过。
+
 ## 效果互相独立，按需挑
 
 它们各写各的 backbuffer 输出，不共享状态或资源；每条管线的最后一组都写回
