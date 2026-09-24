@@ -1,4 +1,23 @@
-# ink-stain —— kitty 墨痕
+# kitty 自定义 shader
+
+两个效果，共用一块 `persist` 纹理：
+
+| pipeline | 做什么 | 占用 persist 通道 |
+| --- | --- | --- |
+| `ink-stain` | 光标走过的地方洇开白色水痕，慢慢干掉 | `.r` = 墨量 |
+| `sleep-wake` | OS 窗口失焦时像睡着，回来时像醒来 | `.g` = 睡意 |
+
+`.a` 是 1.0 哨兵，用来分辨「这块像素我们写过」和「显存里是没初始化的垃圾」。
+`.b` 留着给下一个效果。
+
+**每个 writer 只能更新自己的通道**，其余通道要从 `persist` 原样带走——两个 pipeline
+写的是同一块纹理，谁也不能整块覆盖，否则会把对方的状态抹掉。中转用的 scratch 也各用各的：
+`ink-stain` 用 `a`，`sleep-wake` 用 `b`。因此两条管线在 `custom_shaders` 里的先后顺序
+目前不影响结果，但仍建议按效果顺序排列，便于阅读。
+
+---
+
+## ink-stain —— 墨痕
 
 光标走过的地方洇开白色水痕，慢慢干掉。背景保持原样，墨只落在背景像素上，
 字一个像素都不碰。
@@ -88,7 +107,47 @@ animation_stop ≈ 4 × DRY_TIME
 窗口短了，最后一帧会留下没干完的墨，它会被冻在屏幕上不再变化，直到下次触发才突然消失——
 看起来就像闪一下。改了 `DRY_TIME` 记得同步改 `animation_stop`。
 
-## 注意
+### 注意
 
 订阅 `cursor-trail-move` 之后，kitty 内置的拖尾绘制会被完全抑制（shader 接管）。
 想让它回来共存，把 pipeline 第一组的 `animation_start` 改成只留 `user-activity`。
+
+---
+
+## sleep-wake —— 睡着与醒来
+
+OS 窗口失焦时，文字在 0.85 秒里慢慢退掉颜色、暗下来；回到窗口时 0.38 秒恢复，
+末尾还有一记很轻的过冲（那段曲线故意让 `cubic-bezier` 的 y 超过 1，睡意短暂变负，
+apply 把负值解释成「亮一点点」）。
+
+背景一个像素都不动——你的背景是纯黑，压暗去饱和都看不出变化，效果全在文字上。
+
+### 四个组在做什么
+
+1. `sleep-wake-dim` — 失焦后 0.85 秒把睡意推到 1，写进临时纹理 `b`
+2. `sleep-wake-commit` — 把 `b.g` 并回 `persist`，另外两个通道原样保留
+3. `sleep-wake-rise` — 聚焦后 0.38 秒把睡意拉回 0，过冲时变负
+4. `sleep-wake-apply` — 应用睡意，**常驻**但 `animation_step 0`
+
+`animation_step 0` 的含义是「不申请周期性帧」：kitty 内部会把这个值转成
+`MONOTONIC_T_MAX`，所以这个常驻组只在别的重绘发生时跟着走，空闲时不会自己空转。
+自带的 `dim-inactive-windows` 用的就是同一个套路。
+
+### 可调参数
+
+在 `sleep-wake-apply.slang` 里：
+
+| 参数 | 作用 |
+| --- | --- |
+| `SLEEP_DIM` | 睡着时内容保留多少亮度，0.80 |
+| `SLEEP_DESAT` | 睡着时去掉多少饱和度，0.55 |
+| `SLEEP_TINT` | 睡着时的色偏，默认极轻的冷调 |
+| `WAKE_GAIN` | 醒来那记过冲的强度，设 0 就关掉 |
+
+时间在 pipeline 里：`animation_stop 850`（入睡）、`animation_stop 380`（醒来），
+曲线紧跟其后。想让入睡更慢就一起调大这两个数。
+
+### 一个已知的小瑕疵
+
+kitty 在管线载入时会补发一次 `os-window-focus-in`，所以刚载入时会有一次极轻微的提亮
+（约 1%，几十毫秒，只作用在文字上）。不想要就把 `WAKE_GAIN` 设成 0。

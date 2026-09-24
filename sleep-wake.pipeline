@@ -1,0 +1,46 @@
+# sleep-wake —— OS 窗口失焦时像睡着，回到它时像醒来。
+# 睡着不是瞬间压暗：文字慢慢退掉颜色、暗下来；醒来的末尾还有一记很轻的过冲。
+#
+# 通道约定：persist.r = 墨量（ink-stain），persist.g = 睡意，persist.a = 1.0 哨兵。
+
+textures b persist
+
+# 1) 入睡：失焦后 850ms 把睡意推到 1
+startgroup
+    animation_start os-window-focus-out
+    animation_stop 850
+    animation_curve cubic-bezier(0.4, 0, 0.2, 1)
+    animation_step 16
+    shaders sleep-wake-dim
+    output_texture b
+endgroup
+
+# 2) 把入睡的结果并回 persist
+startgroup
+    attach
+    shaders sleep-wake-commit
+    output_texture persist
+endgroup
+
+# 3) 醒来：聚焦后 380ms 把睡意拉回 0，曲线末端过冲，睡意短暂变负
+startgroup
+    animation_start os-window-focus-in
+    animation_stop 380
+    animation_curve cubic-bezier(0.2, 1.5, 0.4, 1)
+    animation_step 16
+    shaders sleep-wake-rise
+    output_texture b
+endgroup
+
+# 4) 把醒来的结果并回 persist
+startgroup
+    attach
+    shaders sleep-wake-commit
+    output_texture persist
+endgroup
+
+# 5) 应用睡意。animation_step 0 = 不申请周期性帧，只跟着别的重绘走。
+startgroup
+    animation_step 0
+    shaders sleep-wake-apply
+endgroup
