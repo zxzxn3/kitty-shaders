@@ -14,10 +14,11 @@ static const bool WHOLE_WINDOW = false;
 // 想额外压暗再往下调（0.92 是很轻的一档，0.8 明显）。
 static const float DIM = 1.0;
 // 去多少饱和。0.0 = 不动，1.0 = 彻底黑白。
-// 0.10 只是把每种颜色往灰挪一小步（比如某个颜色原本偏离灰 100%，现在偏 90%）。
+// 含义是「保留 (1 - DESAT) 的色度」：0.1 保留 90%（基本看不出），
+// 0.5 保留 50%（明显但不刺眼），0.85 保留 15%（接近黑白）。
 // 注意白字没有色相，去饱和对它完全没影响——这个效果只落在有颜色的内容上
 // （ls 的颜色、语法高亮、彩色提示符、图片）。
-static const float DESAT = 0.10;
+static const float DESAT = 0.50;
 // 分屏边界羽化多少像素，免得交界处出现硬边。
 static const float EDGE_FEATHER_PX = 1.5;
 
