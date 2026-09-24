@@ -12,7 +12,8 @@ import kitty_custom_shader_types;
 // 一笔墨彻底干掉需要的时间常数，秒。
 // 注意：动画窗口（pipeline 里的 animation_stop）必须大于约 4 倍这个值，
 // 否则窗口结束时墨还没干完，会被冻在屏幕上不再变化。
-static const float DRY_TIME = 0.85;
+// 带 INK_ 前缀的常量会被 ink-stain.pipeline 里的 var 覆盖——调参改那个文件。
+static const float INK_DRY_TIME = 0.85;
 // 笔尖半径，像素。往外是软边。
 static const float NIB_RADIUS = 15.0;
 // 笔尖中心这一圈占半径的比例，圈内是实心的。
@@ -25,6 +26,9 @@ static const float DRY_EPSILON = 0.020;
 static const float DRAIN_PER_SECOND = 0.06;
 // 墨洇上来的时间常数，秒。0 就是啪地出现，越大起笔越软。
 static const float SOAK_TIME = 0.08;
+// 上升过程单帧最多算多少秒。只影响「空闲一阵之后的第一帧」，
+// 防止那一帧把整个上升过程一步走完。
+static const float SOAK_MAX_STEP = 0.05;
 // 判定「笔还在动」的时间窗，秒。
 static const float MOVING_WINDOW = 0.09;
 
@@ -46,7 +50,7 @@ fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
     float ink = stored.r;
     if (!(ink > 0.0) || stored.a < 0.999) ink = 0.0;
     ink = min(ink, 1.0);
-    ink = max(ink * exp(-dt / DRY_TIME) - dt * DRAIN_PER_SECOND, 0.0);
+    ink = max(ink * exp(-dt / INK_DRY_TIME) - dt * DRAIN_PER_SECOND, 0.0);
     if (ink < DRY_EPSILON) ink = 0.0;
 
     // 只有笔尖正在移动时才落墨 —— 停在原地不该把那一处越积越浓。
@@ -70,7 +74,10 @@ fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
         float deposit = (1.0 - smoothstep(nib * NIB_CORE, nib, seg_dist(pen, prev, cur)))
                       * NIB_STRENGTH * gate;
         // 让墨渗上来而不是「啪」地出现：按真实时间做指数逼近，帧率无关。
-        float rise = 1.0 - exp(-dt / SOAK_TIME);
+        // 这里的 dt 要夹住：终端空闲一阵之后的第一帧 dt 可能接近一秒，不夹的话
+        // rise ≈ 1，等于跳过上升过程、一整笔直接到位——那正是之前抱怨过的「闪」。
+        // （上面衰减用的 dt 不夹，那是故意的：空闲越久，残墨蒸发得越彻底。）
+        float rise = 1.0 - exp(-min(dt, SOAK_MAX_STEP) / SOAK_TIME);
         float target = max(ink, deposit);
         if (target > ink) ink = lerp(ink, target, rise);
     }

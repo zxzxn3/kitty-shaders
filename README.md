@@ -1,26 +1,45 @@
 # kitty 自定义 shader
 
-| pipeline | 做什么 | 跨帧状态 |
-| --- | --- | --- |
-| `ink-stain` | 光标走过的地方洇开白色水痕，慢慢干掉 | `persist.r` = 墨量 |
-| `inactive-fade` | 失去焦点的窗口、没聚焦的分屏，颜色往黑白去 | 无，完全无状态 |
-| `focus-pulse` | 窗口获得焦点时内容区边缘有一次很轻的呼吸 | 无，单组事件驱动 |
+| pipeline | 做什么 | 用掉的资源 | 额外需要的 kitty 选项 |
+| --- | --- | --- | --- |
+| `ink-stain` | 光标走过的地方洇开白色水痕，慢慢干掉 | `persist.r` `.a`、scratch `a` | `cursor_trail`、`cursor_trail_start_threshold 1` |
+| `inactive-fade` | 失去焦点的窗口、没聚焦的分屏，颜色往黑白去 | 无 | 无 |
+| `focus-pulse` | 窗口获得焦点时内容区边缘有一次很轻的呼吸 | 无 | 无 |
 
-只有 `ink-stain` 用 `persist`，而且只用 `.r`（墨量）和 `.a`（1.0 哨兵，用来分辨
-「我们写过这块像素」和「显存里是没初始化的垃圾」）。既然只有一个使用者，就不需要
-什么通道分配协议。
+## 三个效果是独立的，可以按需挑
+
+它们互不依赖：`ink-stain` 用了 `persist` 的 `.r` 和 `.a`（`.a` 是 1.0 哨兵，用来
+分辨「我们写过这块像素」和「显存里是没初始化的垃圾」），另外两个**完全不碰
+persist**，也没有共用 scratch。每条管线的最后一组都写回 backbuffer，满足 kitty 对
+「最后一条管线最后一组」的要求，所以：
+
+* 任意子集、任意顺序都能加载（把不要的从 `custom_shaders` 里去掉即可）
+* 每条管线单独也能加载
+* 想同时用几个就写几个，组数是它们相加（墨 3 + 淡 2 + 脉动 1 = 6，上限 16）
+
+这不是推断：7 种组合（3 个单条 + 3 个两两 + 1 个全部）全部编译验证过。
+
+## 参数放在哪
+
+约定：**每个效果的日常旋钮都写在它自己的 `.pipeline` 里**（用 `var` 覆盖），
+`.slang` 里保留默认值和实现细节。这样调参只要开一个文件，而且像「变干时间和动画
+窗口必须配套」这种跨文件的耦合，现在两个数就在隔壁。
+
+参数名按效果加了前缀（`INK_` / `FADE_` / `PULSE_`），这不是洁癖：**管线级 `var`
+是全局按名字正则替换的**，两个效果如果用了同名常量，后一条管线的值会覆盖前一条，
+而且不会有任何提示。
 
 ## 启用
 
 `~/.config/kitty/kitty.conf`：
 
 ```conf
-custom_shaders ink-stain inactive-fade
+custom_shaders ink-stain inactive-fade focus-pulse
 # 墨的坐标只能从拖尾几何里拿。默认阈值 2 会跳过单格移动，打字就不出墨。
 cursor_trail_start_threshold 1
 ```
 
-多条 pipeline 按声明顺序串联执行，总共 5 个组。
+多条 pipeline 按声明顺序串联执行。上面三个全开时是 6 个组。
 
 ## 改完怎么生效
 
@@ -64,13 +83,13 @@ grep -A3 'fragment_main_3_0_0' ~/.cache/kitty/shaders/*/glsl/end.frag.glsl
 
 ### 可调参数
 
-`inactive-fade.slang`：
+都在 `inactive-fade.pipeline` 顶部的 `var` 里（shader 里是默认值）：
 
 | 参数 | 作用 |
 | --- | --- |
-| `DIM` | 亮度系数，1.0 = 完全不动亮度（当前）；想额外压暗就往下调 |
-| `DESAT` | 去多少饱和，0.0 = 不动，1.0 = 彻底黑白。含义是保留 (1 - DESAT) 的色度 |
-| `EDGE_FEATHER_PX` | 分屏边界羽化多少像素（只对分屏那组有意义） |
+| `FADE_DIM` | 亮度系数，1.0 = 完全不动亮度（当前）；想额外压暗就往下调 |
+| `FADE_DESAT` | 去多少饱和，0.0 = 不动，1.0 = 彻底黑白。含义是保留 (1 - FADE_DESAT) 的色度 |
+| `FADE_EDGE_PX` | 分屏边界羽化多少像素（只对分屏那组有意义） |
 
 **这个效果对白字完全无效**：白色没有色相，去饱和算出来还是白色。所以只有当屏幕上
 真有彩色内容（`ls` 的颜色、语法高亮、彩色提示符、图片）时才看得出来。如果你希望
@@ -103,29 +122,29 @@ backbuffer，墨迹图就永远不更新，而且不会报错。
 
 ### 可调参数
 
-`ink-stain-accumulate.slang`：
+日常要动的三个都在 `ink-stain.pipeline` 顶部的 `var` 里：
 
 | 参数 | 作用 |
 | --- | --- |
-| `DRY_TIME` | 变干的时间常数，秒。越小收得越快 |
+| `INK_DRY_TIME` | 变干的时间常数，秒。越小收得越快。和同文件的 `animation_stop` 是一对 |
+| `INK_STRENGTH` | 最浓时往墨色混多少 |
+| `INK_COLOR` | 墨色，默认纯白 |
+
+其余是实现细节，留在 `ink-stain-accumulate.slang` / `ink-stain-composite.slang`
+里，一般不用动：
+
+| 参数 | 作用 |
+| --- | --- |
 | `NIB_RADIUS` | 笔尖半径，像素 |
 | `NIB_CORE` | 笔尖中心实心部分占半径的比例，越小越柔 |
 | `NIB_STRENGTH` | 一笔的墨量 |
 | `DRY_EPSILON` | 低于它就当干了，防止残影 |
 | `DRAIN_PER_SECOND` | 指数衰减之外每秒线性刮掉多少 |
 | `SOAK_TIME` | 墨洇上来的时间常数，越大起笔越软（0 = 啪地出现） |
+| `SOAK_MAX_STEP` | 上升过程单帧最多算多少秒（防止空闲后第一帧一步到位） |
 | `MOVING_WINDOW` | 「笔还在动」的判定窗口，秒 |
-
-`ink-stain-composite.slang`：`INK_COLOR`（墨色，默认纯白）、`INK_STRENGTH`
-（最浓时往墨色混多少）、`INK_ALPHA_BOOST`（积墨处不透明度往 1 靠多少）、
-`BG_TOLERANCE`（背景判定容差）。
-
-这些都可以不改 shader，直接在 pipeline 里覆盖：
-
-```
-var float INK_STRENGTH 0.15
-var float3 INK_COLOR float3(0.8, 0.85, 1.0)
-```
+| `INK_ALPHA_BOOST` | 积墨处不透明度往 1 靠多少 |
+| `BG_TOLERANCE` | 背景判定容差（线性 RGB） |
 
 ### 三档预设
 
@@ -134,7 +153,7 @@ var float3 INK_COLOR float3(0.8, 0.85, 1.0)
 | `INK_STRENGTH` | 0.10 | 0.20 | 0.35 |
 | `NIB_STRENGTH` | 0.35 | 0.55 | 0.75 |
 | `INK_ALPHA_BOOST` | 0.20 | 0.40 | 0.70 |
-| `DRY_TIME` | 0.55 | 0.85 | 1.20 |
+| `INK_DRY_TIME` | 0.55 | 0.85 | 1.20 |
 
 ### 变干时间和动画窗口是一对
 
@@ -180,14 +199,16 @@ kitty 在管线载入后的第一帧也会补发一次 `os-window-focus-in`，�
 
 ### 可调参数
 
+都在 `focus-pulse.pipeline` 顶部的 `var` 里（shader 里是默认值）：
+
 | 参数 | 作用 |
 | --- | --- |
-| `PEAK` | 最亮时叠多少，0.05 线性约等于 sRGB 0.24 |
-| `BAND_PX` | 光带宽度，像素 |
-| `ATTACK` | 起手用掉整段动画的比例，0.12 ≈ 70ms |
+| `PULSE_PEAK` | 最亮时叠多少，0.05 线性约等于 sRGB 0.24 |
+| `PULSE_BAND_PX` | 光带宽度，像素 |
+| `PULSE_ATTACK` | 起手用掉整段动画的比例，0.12 ≈ 70ms |
 
 它是在当前颜色上做加法（不动 alpha），所以在纯黑背景上就是一层很淡的灰。嫌它吵就
-把 `PEAK` 降到 0.02，或者直接从 `custom_shaders` 里去掉这个名字。
+把 `PULSE_PEAK` 降到 0.02，或者直接从 `custom_shaders` 里去掉这个名字。
 
 想让它也在切换分屏时脉动，把 pipeline 里那行改成
 `animation_start os-window-focus-in | window-focus-in` 即可。
