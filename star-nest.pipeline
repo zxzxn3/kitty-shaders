@@ -1,0 +1,51 @@
+# star-nest —— 深空星野背景（"Star Nest" 改版，见 star-nest.slang 顶部的署名）
+#
+# 单组、单趟、无状态。整屏背景换成星野，字一个像素都不碰。
+#
+# ⚠ 和 cloud-bg / bg-drift 三选一：都靠「和背景色比较」认背景，
+#   先跑的会把背景染色，后跑的就认不出来了。
+# 位置：在 ink-stroke 之后（否则墨痕认不出背景）、两个 fade 之前（否则失焦不变淡）。
+
+# ── 可调参数（这个效果的所有旋钮都在这里）──
+# 星野混进背景的程度。0 = 完全不动背景，1 = 全用星野。
+#   NEB_STRENGTH 1.0
+# 黑电平，分形值单位：低于它的像素是纯黑。这是"黑背景露出来多少"的主开关。
+# 分形值的中位数约 14.6、p90 约 21、p99 约 30（以 17 次迭代为单位）。
+#   12 → 接近原作那种"糊满整屏的褐色雾"
+#   16 → 默认，砍掉一半以上的像素，黑背景主导
+#   20 → 只剩最亮的 3%，几乎全黑，只有零星星点
+#   NEB_BLACK 16.0
+# 星云/星点亮度。原作 0.0015；默认 0.0004。
+#   NEB_BRIGHT 0.0004
+# 背景雾（原作的 `v += fade`）。原作 1.0，那层让整屏发灰的底噪就来自它。
+#   NEB_HAZE 0.02
+# 线性亮度上限。压住最亮的那几团，避免爆白的大光斑。0.35 线性约等于 sRGB 0.63。
+#   NEB_PEAK 0.35
+# 饱和度。原作 0.85；调小会往灰白走，铁锈味更淡。
+#   NEB_SAT 0.85
+# 时间缩放。原作 0.001（shader1）/ 0.01（shader2）。默认 0.001 几乎看不出来在动。
+#   NEB_SPEED 0.001
+# 视场。原作 0.8。
+#   NEB_ZOOM 0.8
+# 性能旋钮：每像素 = NEB_STEPS × NEB_ITER 次开方（原作 20 × 17 × 2 = 680 次）。
+# 16 × 14 = 224 次约为原作 1/3；降到 12 × 10 = 120 次也不会看出区别
+# （星点是混沌像素，改迭代数会让个别星点换位置，整体浓度不变）。
+#   NEB_STEPS 16 / NEB_ITER 14
+
+startgroup
+    # 不申请周期性帧：空闲零开销，只在内容重绘（打字、滚屏）时跟着走。
+    # 这个效果的演化本来就极慢（NEB_SPEED 0.001），一帧一帧看不出差别。
+    # 想让它真的漂起来：NEB_SPEED 调到 0.01，这里改成 400（2.5fps）。
+    animation_step 0
+    var float NEB_STRENGTH 1.0
+    var float NEB_BLACK 16.0
+    var float NEB_BRIGHT 0.0004
+    var float NEB_HAZE 0.02
+    var float NEB_PEAK 0.35
+    var float NEB_SAT 0.85
+    var float NEB_SPEED 0.001
+    var float NEB_ZOOM 0.8
+    var int NEB_STEPS 16
+    var int NEB_ITER 14
+    shaders star-nest
+endgroup
