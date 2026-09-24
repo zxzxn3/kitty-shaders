@@ -24,8 +24,9 @@
 #   NEB_PEAK 0.35
 # 饱和度。原作 0.85；调小会往灰白走，铁锈味更淡。
 #   NEB_SAT 0.85
-# 时间缩放。原作 0.001（shader1）/ 0.01（shader2）。默认 0.001 几乎看不出来在动。
-#   NEB_SPEED 0.001
+# 时间缩放。原作 0.001（shader1）/ 0.01（shader2）。
+# 0.0025 配合 2.5fps：每帧只走格距的 0.03%，一帧一帧看不出跳，几分钟能看出来在漂。
+#   NEB_SPEED 0.0025
 # 视场。原作 0.8。
 #   NEB_ZOOM 0.8
 # 性能旋钮：每像素 = NEB_STEPS × NEB_ITER 次开方（原作 20 × 17 × 2 = 680 次）。
@@ -34,17 +35,20 @@
 #   NEB_STEPS 16 / NEB_ITER 14
 
 startgroup
-    # 不申请周期性帧：空闲零开销，只在内容重绘（打字、滚屏）时跟着走。
-    # 这个效果的演化本来就极慢（NEB_SPEED 0.001），一帧一帧看不出差别。
-    # 想让它真的漂起来：NEB_SPEED 调到 0.01，这里改成 400（2.5fps）。
-    animation_step 0
+    # 2.5fps 的周期帧。**必须是周期帧**，不能是 0：
+    # 星野的相位来自 d.timestamp（真实时间），而 animation_step 0 只在「内容重绘」时
+    # 才跑一遍。于是背景的"运动"会被重绘频率绑架——滚进回滚缓冲（没有新输出）时它
+    # 就不动了，而在 TUI 里光标一闪它又跳一下，看着像卡住、又像在乱抖。
+    # 周期帧让运动只跟时间走，跟打字/滚屏无关。
+    # 想完全不随时间变（零开销、彻底静止）：把 NEB_SPEED 设成 0.0。
+    animation_step 400
     var float NEB_STRENGTH 1.0
     var float NEB_BLACK 18.0
     var float NEB_BRIGHT 0.0004
     var float NEB_HAZE 0.02
     var float NEB_PEAK 0.35
     var float NEB_SAT 0.85
-    var float NEB_SPEED 0.001
+    var float NEB_SPEED 0.0025
     var float NEB_ZOOM 0.8
     var int NEB_STEPS 16
     var int NEB_ITER 14
