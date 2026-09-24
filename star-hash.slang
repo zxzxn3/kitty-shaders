@@ -25,15 +25,10 @@ static const float STAR_CELL = 22.0;     // 格子边长（像素）。越小星
 static const float STAR_DENSITY = 0.35;  // 有多大比例的格子有星
 static const float STAR_BRIGHT = 0.50;   // 最亮的星（线性亮度，叠在背景上）
 static const float STAR_SPEED = 120.0;   // 漂移速度（像素/秒），0 = 完全静止
-static const float STAR_DUST = 0.50;     // 尘埃带：把银河带以外区域的星压暗多少（0 = 关）
 
 // ── 实现细节 ──
 static const float STAR_RADIUS = 1.7;    // 星点基准半径（像素）
 static const float STAR_BAND = 0.45;     // 银河带强弱：让疏密有大尺度变化，不至于像噪点
-// 银河带/尘埃带的尺度（像素）。**这决定你能不能看出"带"**：
-// 比窗口大得多就只是一片平滑渐变（1400~2600 是这个场原来的周期，等于看不见）；
-// 200 大约是"一屏两三条"，疏密差别才看得出来。
-static const float STAR_BAND_PX = 200.0;
 static const float BG_TOLERANCE = 0.02;
 
 static float
@@ -79,13 +74,10 @@ fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
     }
 
     // 大尺度的疏密变化：几个低频正弦叠出来的"银河带"，比均匀撒点耐看
-    float2 q = sky / STAR_BAND_PX;
-    float raw = sin(q.x * 2.1 + 1.7) * cos(q.y * 1.7 - 0.4) + 0.5 * sin((q.x + q.y) * 3.1);
-    float band = 1.0 + STAR_BAND * raw;
-    // 尘埃带：同一条场的值再当一次闸门——带子里的星全留，带子外的按 STAR_DUST 压暗，
-    // 于是星点聚成一道河、两侧是暗的"尘埃"。零额外三角函数的代价。
-    float dust = lerp(STAR_DUST, 1.0, smoothstep(0.40, 0.65, clamp(raw * 0.5 + 0.5, 0.0, 1.0)));
+    float2 q = sky / 700.0;
+    float band = 1.0 + STAR_BAND * (sin(q.x * 2.1 + 1.7) * cos(q.y * 1.7 - 0.4)
+                                    + 0.5 * sin((q.x + q.y) * 3.1));
 
     // 加法叠在背景上：背景该多黑还是多黑，星星浮在上面
-    return float4(lerp(color.rgb, color.rgb + stars * (STAR_BRIGHT * band * dust), bg), color.a);
+    return float4(lerp(color.rgb, color.rgb + stars * (STAR_BRIGHT * band), bg), color.a);
 }

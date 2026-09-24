@@ -14,10 +14,6 @@
 # STAR_SPEED    漂移速度（像素/秒），0.0 = 完全静止（那就可以把 animation_step 设 0）
 #               想再快就往上加，但要跟帧率配：每帧位移 = STAR_SPEED / (1000/animation_step)。
 #               超过 1 像素/帧就开始看出"一跳一跳"，所以要么降速、要么把 animation_step 调小。
-# STAR_DUST     尘埃带：银河带以外区域的星被压暗多少。0.0 = 关（星点均匀撒满），
-#               0.5 默认（聚成一道星河、两侧转暗），1.0 = 带外几乎没有星。
-#               注意：它的尺度由 shader 里的 STAR_BAND_PX（默认 200 像素）决定——
-#               那个值比窗口大得多的话，整屏只落在一段平滑渐变上，就看不出"带"了。
 #
 # 星点半径、冷暖白、银河带强弱收在 shader 里当常量：要动就改 star-hash.slang 顶部。
 
@@ -34,6 +30,5 @@ startgroup
     var float STAR_DENSITY 0.35
     var float STAR_BRIGHT 0.50
     var float STAR_SPEED 120.0
-    var float STAR_DUST 0.50
     shaders star-hash
 endgroup
