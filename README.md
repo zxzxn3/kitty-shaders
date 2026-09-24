@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | `ink-stain` | 光标走过的地方洇开白色水痕，慢慢干掉 | `persist.r` = 墨量 |
 | `inactive-fade` | 失去焦点的窗口、没聚焦的分屏，颜色往黑白去 | 无，完全无状态 |
-| `keystroke-pulse` | 敲键盘时内容区边缘有一次很轻的呼吸 | 无，单组事件驱动 |
+| `focus-pulse` | 窗口获得焦点时内容区边缘有一次很轻的呼吸 | 无，单组事件驱动 |
 
 只有 `ink-stain` 用 `persist`，而且只用 `.r`（墨量）和 `.a`（1.0 哨兵，用来分辨
 「我们写过这块像素」和「显存里是没初始化的垃圾」）。既然只有一个使用者，就不需要
@@ -154,19 +154,29 @@ animation_stop ≈ 4 × DRY_TIME
 
 ---
 
-## keystroke-pulse —— 打字时边缘的呼吸
+## focus-pulse —— 获得焦点时边缘的呼吸
 
-敲键盘时，内容区（不含标签栏那一条）边缘浮起一条很淡的光带，约 700ms 起落一次。
+一个窗口获得焦点时，内容区（不含标签栏那一条）边缘浮起一条很淡的光带，
+约 700ms 起落一次。
 
 ### 怎么做的
 
-单组、事件驱动、无状态：`animation_start user-activity` 配 `animation_stop 600`，
+单组、事件驱动、无状态：`animation_start os-window-focus-in` 配 `animation_stop 600`，
 强度按「到边缘的像素距离」衰减成 `BAND_PX` 宽的一条带，envelope 是
 `(1 - p) * smoothstep(0, ATTACK, p)`——平滑起手约 70ms，然后落下。
 
-`animation_step 16` 只在动画期间要帧，空闲时这个组不活跃，所以整体开销为零。连续
-打字时每次按键都会重启动画（kitty 的语义是新事件会把 `started_at` 重设），所以它
-会稳定在一个较低的水平上，停下后 600ms 内收干净——这是"呼吸"而不是"闪烁"。
+**判据为什么是 `os-window-focus-in`**：它只在「这个 OS 窗口获得键盘焦点」时触发，
+而且触发在获得焦点的那个窗口上。所以脉动出现在新窗口——旧窗口收到的是
+`os-window-focus-out`。（一开始我用的是 `user-activity`，那是"这个窗口收到了键盘
+或鼠标输入"，于是点别的窗口时脉动落在了旧窗口，打字时又一路触发。判据用错，症状
+就是这两条。）
+
+`animation_step 16` 只在动画那 600ms 里要帧，其余时间这个组不活跃，所以开销为零。
+
+### 一个附带的已知行为
+
+kitty 在管线载入后的第一帧也会补发一次 `os-window-focus-in`，所以每次重载配置时
+当前窗口也会脉动一下。当成"shader 已经重新加载"的信号挺好用的，不用管它。
 
 ### 可调参数
 
@@ -178,6 +188,9 @@ animation_stop ≈ 4 × DRY_TIME
 
 它是在当前颜色上做加法（不动 alpha），所以在纯黑背景上就是一层很淡的灰。嫌它吵就
 把 `PEAK` 降到 0.02，或者直接从 `custom_shaders` 里去掉这个名字。
+
+想让它也在切换分屏时脉动，把 pipeline 里那行改成
+`animation_start os-window-focus-in | window-focus-in` 即可。
 
 ---
 
