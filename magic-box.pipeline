@@ -1,0 +1,25 @@
+# magic-box —— 魔盒分形背景（见 magic-box.slang 顶部的署名与移植说明）
+#
+# 单组、单趟、无状态：每像素 12 次迭代（约 12 次开方），比 star-nest 便宜一个数量级。
+# 观感：黑底 + 橙红的珊瑚/蕾丝状结构，随时间缓缓"飞"过去。
+#
+# ⚠ 和 star-hash / star-nest / cloud-bg / bg-drift 只能开一个（都靠「和背景色比较」认背景）。
+# 位置：必须在 ink-stroke 之后、两个 fade 之前。
+
+# ── 三个旋钮，都在下面的组里 ──
+# MBOX_STRENGTH  混进背景的强度。原版是整屏不透明；这里默认 0.6（够清楚，白字也读得出来）
+# MBOX_SPEED     相机前进速度（原作 0.05）。0.0 = 完全静止（那就可以把 animation_step 设 0）
+# MBOX_GATE      门槛：场值超过它才发光。**调小 = 结构更多**（0.15 满屏都是），
+#                0.40 默认（黑底为主，结构成条带状），0.30 更满、0.45 只剩几缕细丝。
+#
+# 魔法常数 0.77、迭代 12、缩放 0.25、上色带的边界都收在 shader 里当常量——
+# 改 0.77 会变成另一种分形，那是这个效果最有意思的旋钮，想要的话说一声我提到外面。
+
+startgroup
+    # 12 次迭代很便宜，所以帧率给足，配合 MBOX_SPEED 才有"飞过去"的连贯感。
+    animation_step 16
+    var float MBOX_STRENGTH 0.45
+    var float MBOX_SPEED 0.05
+    var float MBOX_GATE 0.40
+    shaders magic-box
+endgroup
