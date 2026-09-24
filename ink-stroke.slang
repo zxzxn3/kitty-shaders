@@ -43,7 +43,8 @@ fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
 
     // 只压在背景上，字不碰。
     float3 diff = abs(color.rgb - d.background.rgb);
-    if (1.0 - smoothstep(0.0, BG_TOLERANCE, max(max(diff.r, diff.g), diff.b)) > 0.0) return color;
+    float bg = 1.0 - smoothstep(0.0, BG_TOLERANCE, max(max(diff.r, diff.g), diff.b));
+    if (bg <= 0.0) return color;
 
     float2 dims = float2(d.viewport_size_pixels) * t.viewport.zw;
     float2 pen = t.pos * dims;

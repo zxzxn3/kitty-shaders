@@ -1,17 +1,16 @@
 #language slang 2026
-// inactive-fade —— 不活跃的部分颜色变淡（去饱和）。没有渐变、没有计时、
-// 没有跨帧状态。
+// fade —— 把颜色往黑白去，不动亮度。给两个维度共用：
+//   WHOLE_WINDOW = true  → 整个窗口都变淡（window-fade 用：这个 OS 窗口失焦）
+//   WHOLE_WINDOW = false → 只有活动分屏外面变淡（layout-fade 用：窗口有焦点）
 //
-// 同一个文件被两个组复用，差别只有 WHOLE_WINDOW 这一个开关：
-//   true  → 整个窗口都变淡（这个 OS 窗口失焦时用）
-//   false → 只有活动分屏外面变淡（窗口有焦点时用）
-// 开关在 pipeline 里按组覆盖，不需要改这个文件，也不需要第二份 shader。
+// 两条管线各自引用这个文件，kitty 会按「组 + shader」分别编译，所以两种行为是
+// 两份独立特化，不是运行时分支。开关用组内 var 覆盖，不需要改这个文件。
 //
-// 带 FADE_ 前缀的常量会被 inactive-fade.pipeline 里的 var 覆盖——调参改那个文件。
+// 带 FADE_ 前缀的常量会被 pipeline 里的 var 覆盖——调参改那边。
 
 import kitty_custom_shader_types;
 
-// 是否整窗变暗。默认 false，pipeline 里的失焦组会覆盖成 true。
+// 是否整窗变淡。默认 false；window-fade 的那一组会覆盖成 true。
 static const bool WHOLE_WINDOW = false;
 // 亮度系数。1.0 = 完全不动亮度，就是现在这档：颜色只往黑白去，不变暗。
 // 想额外压暗再往下调（0.92 是很轻的一档，0.8 明显）。
@@ -22,7 +21,7 @@ static const float FADE_DIM = 1.0;
 // 注意白字没有色相，去饱和对它完全没影响——这个效果只落在有颜色的内容上
 // （ls 的颜色、语法高亮、彩色提示符、图片）。
 static const float FADE_DESAT = 0.20;
-// 分屏边界羽化多少像素，免得交界处出现硬边。
+// 分屏边界羽化多少像素，免得交界处出现硬边。只对 layout-fade 那组有意义。
 static const float FADE_EDGE_PX = 1.5;
 
 public float4
