@@ -12,16 +12,18 @@
 # STAR_DENSITY  有多大比例的格子有星（0.35 = 三成格子有星）
 # STAR_BRIGHT   最亮的星亮度（线性，直接叠在背景上；0.5 已经相当亮）
 # STAR_SPEED    漂移速度（像素/秒），0.0 = 完全静止（那就可以把 animation_step 设 0）
+#               想再快就往上加，但要跟帧率配：每帧位移 = STAR_SPEED / (1000/animation_step)。
+#               超过 1 像素/帧就开始看出"一跳一跳"，所以要么降速、要么把 animation_step 调小。
 #
 # 星点半径、冷暖白、银河带强弱收在 shader 里当常量：要动就改 star-hash.slang 顶部。
 
 startgroup
     # 这个效果每像素只做 9 次哈希，比 star-nest 便宜两个数量级，所以帧率给足：
-    # 5fps + 2px/s 的漂移，看着是星星在缓缓滑过，而不是像分形那样"沸腾"。
-    animation_step 200
+    # 15fps + 12px/s（每帧 0.8 像素），看着是星星缓缓滑过，而不是像分形那样"沸腾"。
+    animation_step 66
     var float STAR_CELL 22.0
     var float STAR_DENSITY 0.35
     var float STAR_BRIGHT 0.50
-    var float STAR_SPEED 2.0
+    var float STAR_SPEED 12.0
     shaders star-hash
 endgroup
