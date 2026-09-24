@@ -24,7 +24,7 @@ import kitty_custom_shader_types;
 static const float STAR_CELL = 22.0;     // 格子边长（像素）。越小星越密
 static const float STAR_DENSITY = 0.35;  // 有多大比例的格子有星
 static const float STAR_BRIGHT = 0.50;   // 最亮的星（线性亮度，叠在背景上）
-static const float STAR_SPEED = 12.0;    // 漂移速度（像素/秒），0 = 完全静止
+static const float STAR_SPEED = 120.0;   // 漂移速度（像素/秒），0 = 完全静止
 
 // ── 实现细节 ──
 static const float STAR_RADIUS = 1.7;    // 星点基准半径（像素）

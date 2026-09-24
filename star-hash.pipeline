@@ -19,11 +19,13 @@
 
 startgroup
     # 这个效果每像素只做 9 次哈希，比 star-nest 便宜两个数量级，所以帧率给足：
-    # 15fps + 12px/s（每帧 0.8 像素），看着是星星缓缓滑过，而不是像分形那样"沸腾"。
-    animation_step 66
+    # 60fps + 120px/s（每帧 2 像素）。想在"每帧不超过 1 像素"的前提下再快，
+    # 就得把 animation_step 降到 10ms（100fps）——kitty 不允许比 repaint_delay 更小，
+    # 再往下要连 repaint_delay 一起改。
+    animation_step 16
     var float STAR_CELL 22.0
     var float STAR_DENSITY 0.35
     var float STAR_BRIGHT 0.50
-    var float STAR_SPEED 12.0
+    var float STAR_SPEED 120.0
     shaders star-hash
 endgroup
