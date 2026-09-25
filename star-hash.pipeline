@@ -1,11 +1,7 @@
 # star-hash —— 哈希星场背景（"格子哈希撒星星"，见 star-hash.slang 顶部）
 #
-# 单组、单趟、无状态：背景像素上叠一层星点，字一个像素都不碰；不用临时纹理。
-# 和 star-nest 是两种观感：这个是纯星场（密度/亮度完全可控、没有大光斑、便宜得多），
-# star-nest 有分形的星云絮状结构。两个都留着，想换就把下面这行换成 star-nest。
-#
-# ⚠ 和 cloud-bg / star-nest / bg-drift 只能开一个（都靠「和背景色比较」认背景）。
-# 位置：必须在 ink-stroke 之后、两个 fade 之前。
+# 单组、单趟、无状态：只在背景像素上叠星点，字一个像素都不碰。
+# ⚠ 和另外三个背景互斥，位置见 README 的「顺序与互斥」。
 
 # ── 六个旋钮，都在下面的组里 ──
 # 前四个管"近景层"（也是主体）：
@@ -13,23 +9,20 @@
 #   STAR_DENSITY  有多大比例的格子有星（0.35 = 三成格子有星）
 #   STAR_BRIGHT   最亮的星亮度（线性，直接叠在背景上；0.55 已经相当亮）
 #   STAR_SPEED    漂移速度（像素/秒），0.0 = 完全静止（那就可以把 animation_step 设 0）
-#                 每帧位移 = STAR_SPEED / (1000/animation_step)，超过 1 像素就开始看出跳。
+#                 密度和亮度不影响性能；速度超过 ~2 px/帧就开始看出跳。
 # 后两个管"远景层"，也就是视差：
 #   STAR_FAR_SCALE  远景层的格子/半径/亮度比例。0.55 = 比近景细一半、暗一半
 #   STAR_FAR_SPEED  远景层的速度比例 —— **视差强度就是它**：
 #                   1.0 = 两层同速（等于没有视差），0.35 默认，
 #                   0.0 = 远景层完全不动（像贴在墙上的背景板）
 #
-# 星点半径、冷暖白、大尺度疏密收在 shader 里当常量：要动就改 star-hash.slang 顶部。
+# 星点半径、冷暖白、大尺度疏密在 star-hash.slang 顶部。
 
-# 声明但不用（同 star-nest）：让命名纹理在启动时就存在，切换背景时纹理集合不变。
+# 声明但不用：让命名纹理在启动时就存在，切换背景时纹理集合不变。
 textures a
 
 startgroup
-    # 两层视差一共 18 次哈希，仍比 star-nest 便宜 20 倍以上，所以帧率给足：
-    # 60fps + 120px/s（每帧 2 像素）。想在"每帧不超过 1 像素"的前提下再快，
-    # 就得把 animation_step 降到 10ms（100fps）——kitty 不允许比 repaint_delay 更小，
-    # 再往下要连 repaint_delay 一起改。
+    # 60fps + 120px/s（每帧 2 像素）。再快得连 repaint_delay 一起改。
     animation_step 16
     var float STAR_CELL 26.0
     var float STAR_DENSITY 0.35

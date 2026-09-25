@@ -1,23 +1,17 @@
 #language slang 2026
 // focus-pulse —— 一个窗口获得焦点时，内容区边缘有一次很轻的"呼吸"。
 //
-// 单组、事件驱动、无状态。触发条件是 os-window-focus-in，也就是「这个 OS 窗口
-// 获得键盘焦点」：所以脉动出现在**新**聚焦的窗口上，正在失去焦点的那个不会脉动；
-// 打字也不会触发（那属于 user-activity，和这里无关）。
-//
-// 一个附带的已知行为：kitty 在管线载入后的第一帧也会补发一次 os-window-focus-in，
-// 所以每次重载配置时当前窗口也会脉动一下——正好当成"shader 已经重新加载"的信号。
-//
-// 带 PULSE_ 前缀的常量会被 focus-pulse.pipeline 里的 var 覆盖——调参改那个文件。
+// 单组、事件驱动、无状态，触发条件 os-window-focus-in（=这个 OS 窗口获得键盘焦点）。
+// 附带的已知行为：kitty 在管线载入后的第一帧也会补发一次该事件，所以每次重载配置时
+// 当前窗口也会脉动一下——正好当成"shader 已经重新加载"的信号。
+// 带 PULSE_ 前缀的常量会被 pipeline 的组内 var 覆盖——调参改那个文件。
 
 import kitty_custom_shader_types;
 
-// 最亮时往当前颜色上叠多少。0.05 线性约等于 sRGB 0.24，是很淡的一层。
-static const float PULSE_PEAK = 0.05;
-// 从边缘往里多少像素衰减到没有。给得大一点就是柔和的渐变而不是一条边。
-static const float PULSE_BAND_PX = 48.0;
-// 起手用掉整段动画的多大比例。0.12 × 600ms ≈ 70ms，够平滑又不会觉得慢。
-static const float PULSE_ATTACK = 0.12;
+// 下面三个会被 focus-pulse.pipeline 的组内 var 覆盖
+static const float PULSE_PEAK = 0.05;      // 最亮时叠多少（线性）
+static const float PULSE_BAND_PX = 48.0;   // 从边缘往里多少像素衰减到没有
+static const float PULSE_ATTACK = 0.12;    // 起手用掉整段动画的比例
 
 public float4
 fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
