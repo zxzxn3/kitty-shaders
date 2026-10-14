@@ -1,33 +1,33 @@
-# 体积云，源自 nimitz 的 Protean clouds（CC BY-NC-SA 3.0）。
-# 第一趟按行抽样写纹理 a，第二趟垂直插值并混合背景；背景四选一。
+# Volumetric clouds adapted from nimitz's Protean Clouds (CC BY-NC-SA 3.0).
+# Sample rows into texture a, then interpolate and blend; use only one animated background.
 
-# 步进数；越大越饱满、越慢，低于 32 容易看穿。
+# Marching steps: higher values add detail and cost; values below 32 can expose gaps.
 var int CLOUD_STEPS 48
-# 每几行算一次云（其余行插值）。1 = 原版那样逐行算；越大越省，云越"软"。
+# Compute one row per stride and interpolate the rest; 1 computes every row, larger values soften clouds and reduce cost.
 var int CLOUD_ROW_STRIDE 4
-# 每步光照采样次数。
+# Lighting samples per marching step.
 var int CLOUD_LIGHT_TAPS 1
-# 每步形变迭代数；影响成本和云形态。
+# Deformation iterations per step; affect cost and cloud shape.
 var int CLOUD_MAP_ITER 4
-# 时间缩放；越大漂移越快。
+# Time scale: higher values increase drift speed.
 var float CLOUD_TIME_SCALE 0.2
-# 鼠标控制视角。
+# Use the mouse to control the view.
 var bool CLOUD_MOUSE false
-# 线性亮度乘数。
+# Linear brightness multiplier.
 var float CLOUD_STRENGTH 0.12
-# 背景像素被云替换的程度。0 = 完全不动背景。
+# Background replacement strength; 0 leaves the background unchanged.
 var float CLOUD_MIX 1.0
 
 textures a
 
-# 1) 算云 → 临时纹理 a
+# Pass 1: compute clouds into temporary texture a.
 startgroup
     animation_step 200
     shaders cloud-bg
     output_texture a
 endgroup
 
-# 插值并上色；attach 和相同步长使两趟同步，避免额外申请帧。
+# Interpolate and blend; attach and matching intervals synchronize both passes.
 startgroup
     attach
     animation_step 200

@@ -1,9 +1,9 @@
-# 光标笔触；订阅拖尾事件会取代 Kitty 内置拖尾。
-# 需设 cursor_trail_start_threshold 1，才能捕获单格移动。
+# Cursor ink trail; subscribing to trail events replaces Kitty's built-in trail.
+# Set cursor_trail_start_threshold to 1 to include single-cell movements.
 
-# 墨色混合强度。
+# Ink blending strength.
 var float INK_STRENGTH 0.12
-# 墨色，线性 RGB，范围 0..1。
+# Ink color in linear RGB, range 0..1.
 var float3 INK_COLOR float3(1.0, 1.0, 1.0)
 
 startgroup

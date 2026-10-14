@@ -1,15 +1,15 @@
-# 双层视差星场；背景四选一。
+# Two-layer parallax starfield; use only one animated background.
 
-# STAR_CELL：格子边长（像素）；越小越密。
-# STAR_DENSITY：有星格子的比例。STAR_BRIGHT：线性亮度。
-# STAR_SPEED：像素/秒；为 0 时可关闭周期帧。
-# STAR_FAR_SCALE：远景尺寸和亮度比例。STAR_FAR_SPEED：远景速度比例。
+# STAR_CELL: cell size in pixels; smaller values increase density.
+# STAR_DENSITY: occupied-cell fraction; STAR_BRIGHT: linear brightness.
+# STAR_SPEED: pixels per second; for static rendering set speed and animation_step to 0.
+# STAR_FAR_SCALE: far-layer size and brightness; STAR_FAR_SPEED: far-layer speed ratio.
 
-# 保留纹理声明，避免切换背景时改变纹理集合。
+# Keep the texture declaration to avoid changing the texture set when switching backgrounds.
 textures a
 
 startgroup
-    # 60fps；速度超过约 2px/帧会出现跳动。
+    # Approximately 60 fps; motion above about 2 pixels per frame can look discontinuous.
     animation_step 16
     var float STAR_CELL 26.0
     var float STAR_DENSITY 0.35

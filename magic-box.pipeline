@@ -1,9 +1,9 @@
-# 魔盒分形背景，来源见 magic-box.slang；背景四选一。
+# Magic Box fractal background; attribution is in magic-box.slang. Use only one animated background.
 
-# MBOX_STRENGTH：背景混合强度。MBOX_SPEED：前进速度，0 为静止。
-# MBOX_GATE：细丝门槛，越小细丝越多；配色和迭代常量见 shader。
+# MBOX_STRENGTH: background blend; MBOX_SPEED: forward speed, 0 for no drift.
+# MBOX_GATE: filament threshold; lower values reveal more filaments. Colors and iteration constants are in the shader.
 
-# 保留纹理声明，避免切换背景时改变纹理集合。
+# Keep the texture declaration to avoid changing the texture set when switching backgrounds.
 textures a
 
 startgroup

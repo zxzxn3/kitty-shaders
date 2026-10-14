@@ -7,24 +7,24 @@
 
 import kitty_custom_shader_types;
 
-// 曲率强度。kitty 自带 crt 的默认值就是 0.25。
+// Curvature strength; Kitty's built-in CRT shader uses 0.25.
 static const float WARP = 0.25f;
-// 横向 / 纵向弯曲比例。
+// Horizontal and vertical curvature ratios.
 static const float WARP_X = 0.3f;
 static const float WARP_Y = 0.4f;
 
 public float4
 fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
-    // 视口内的 UV，0..1。
+    // Viewport UV coordinates, 0..1.
     float2 uv = t.pos;
 
-    // 到中心的距离平方：离中心越远推得越狠，这就是"视场被扭起来"的来源。
+    // Squared distance from the center increases displacement toward the edges.
     float2 dc = abs(0.5f - uv);
     dc *= dc;
 
     uv.x = 0.5f + (uv.x - 0.5f) * (1.0f + dc.y * WARP_X * WARP);
     uv.y = 0.5f + (uv.y - 0.5f) * (1.0f + dc.x * WARP_Y * WARP);
 
-    // 视口外采样由 sampler clamp，边缘延展而非黑边。
+    // Sampler clamping extends edge pixels instead of adding black borders.
     return t.backbuffer.Sample(uv);
 }

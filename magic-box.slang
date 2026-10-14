@@ -5,42 +5,42 @@
 
 import kitty_custom_shader_types;
 
-// ── 旋钮（在 magic-box.pipeline 里覆盖）──
-static const float MBOX_STRENGTH = 0.60;  // 混进背景的强度
-static const float MBOX_SPEED = 0.05;     // 相机前进速度（原作 0.05）。0 = 完全静止
-static const float MBOX_GATE = 0.34;      // 细丝的门槛：调小结构更多，调大只剩几缕
+// Controls overridden by magic-box.pipeline.
+static const float MBOX_STRENGTH = 0.60;  // Background blending strength.
+static const float MBOX_SPEED = 0.05;     // Forward camera speed; original value: 0.05. Set 0 for no drift.
+static const float MBOX_GATE = 0.34;      // Filament threshold: lower reveals more structure, higher keeps fewer strands.
 
-// ── 实现细节 ──
-static const int MBOX_ITERS = 10;         // 原作 12；越多人越细、越贵
-static const float MBOX_MAGIC = 0.77;     // 原作那个"魔法常数"，换值就是另一种分形
-static const float MBOX_ZOOM = 0.25;      // 原作 0.25：越小越"放大"，大尺度重复越少
-static const float MBOX_SCALE = 0.07;     // 原作把场值乘 0.07 之后再上色
-// 上色用的几条边界（都在"场值×0.07"这个刻度上）
-static const float MBOX_BASE_LO = 0.18;   // 底色起点
-static const float MBOX_BASE_HI = 0.60;   // 底色到顶（再往上就是细丝的地盘）
-static const float MBOX_RIM0 = 0.42;      // 细丝带的中心
-static const float MBOX_RIM1 = 0.52;      // 细丝带的上沿（再往上是空腔）
-static const float MBOX_FLOW = 0.45;      // "洋流"起伏的幅度
-static const float MBOX_HUE_FREQ = 0.12;  // 色相游走的快慢（越小，同屏色差越少）
-static const float3 MBOX_HUE_DIR = float3(0.55, 0.85, 0.42);   // 色相沿哪个方向走
-static const float3 MBOX_FLOW_DIR = float3(0.21, -0.48, 0.30); // "洋流"沿哪个方向走
-// 配色（sRGB，进 shader 后转线性）
-static const float3 MBOX_DEEP = float3(0.015, 0.035, 0.060);   // 近黑深海蓝
-static const float3 MBOX_MID = float3(0.060, 0.170, 0.240);    // 深青
-static const float3 MBOX_ALT = float3(0.200, 0.360, 0.500);    // 钢蓝（和深青互为色相两端）
-static const float3 MBOX_LIGHT = float3(0.450, 0.680, 0.720);  // 细丝的淡青
+// Implementation details.
+static const int MBOX_ITERS = 10;         // Original value: 12; more iterations add detail and cost.
+static const float MBOX_MAGIC = 0.77;     // Original fractal constant; changing it changes the fractal.
+static const float MBOX_ZOOM = 0.25;      // Original value: 0.25; lower values zoom in and reduce large-scale repetition.
+static const float MBOX_SCALE = 0.07;     // The original scales the field by 0.07 before coloring.
+// Color thresholds expressed on the field * 0.07 scale.
+static const float MBOX_BASE_LO = 0.18;   // Start of the base-color range.
+static const float MBOX_BASE_HI = 0.60;   // End of the base-color range, followed by filaments.
+static const float MBOX_RIM0 = 0.42;      // Center of the filament band.
+static const float MBOX_RIM1 = 0.52;      // Upper edge of the filament band, followed by cavities.
+static const float MBOX_FLOW = 0.45;      // Flow modulation amplitude.
+static const float MBOX_HUE_FREQ = 0.12;  // Hue variation frequency; lower values reduce color variation within one frame.
+static const float3 MBOX_HUE_DIR = float3(0.55, 0.85, 0.42);   // Hue variation direction.
+static const float3 MBOX_FLOW_DIR = float3(0.21, -0.48, 0.30); // Flow direction.
+// Colors in sRGB, converted to linear RGB in the shader.
+static const float3 MBOX_DEEP = float3(0.015, 0.035, 0.060);   // Near-black deep blue.
+static const float3 MBOX_MID = float3(0.060, 0.170, 0.240);    // Deep teal.
+static const float3 MBOX_ALT = float3(0.200, 0.360, 0.500);    // Steel blue; the other end of the hue blend.
+static const float3 MBOX_LIGHT = float3(0.450, 0.680, 0.720);  // Pale cyan filaments.
 static const float BG_TOLERANCE = 0.02;
 
-// 原版那个矩阵：GLSL 的 mat3 字面是**列主序**，所以行主序写出来是它的转置。
+// The original GLSL mat3 literal is column-major; transpose it for row-major representation.
 static const float3x3 MBOX_M = float3x3(
      0.288,  0.069, -0.954,
      0.699,  0.665,  0.260,
      0.653, -0.743,  0.143);
 
-// 场值：折进镜子盒子 + 迭代累加
+// Field evaluation: mirrored box folding and iterative accumulation.
 static float
 magic_box(float3 p) {
-    p = 1.0 - abs(1.0 - (p - 2.0 * floor(p * 0.5)));   // GLSL mod(p,2) 的 floor 语义
+    p = 1.0 - abs(1.0 - (p - 2.0 * floor(p * 0.5)));   // Floor-based GLSL mod(p, 2) semantics.
     float last = length(p);
     float tot = 0.0;
     for (int i = 0; i < MBOX_ITERS; i++) {
@@ -59,21 +59,21 @@ fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
     if (bg <= 0.0) return color;
 
     float2 res = max(float2(d.viewport_size_pixels) * t.viewport.zw, float2(1.0));
-    // 原版 uv = fragCoord / iResolution.yy：纵向 0..1，横向 0..宽高比，不居中
+    // Original fragCoord / iResolution.yy: y spans 0..1, x spans the aspect ratio, without centering.
     float2 uv = float2(t.pos.x * res.x / res.y, t.pos.y);
-    float z = d.timestamp * MBOX_SPEED + 100.0;         // 原版的 100.0 是相机的起始深度
+    float z = d.timestamp * MBOX_SPEED + 100.0;         // Original initial camera depth: 100.0.
     float3 world = MBOX_ZOOM * mul(MBOX_M, float3(uv, z));
 
     float r = magic_box(world) * MBOX_SCALE;
 
-    // 底色：低值区 = 近黑深海蓝，"洋流"让它有深浅起伏而不是一块死色
+    // Base color: deep blue at low field values, with flow modulation for tonal variation.
     float flow = 1.0 - 0.5 * MBOX_FLOW
                + 0.5 * MBOX_FLOW * sin(dot(world, normalize(MBOX_FLOW_DIR)) * 0.06 + 1.7);
     float base = smoothstep(MBOX_BASE_LO, MBOX_BASE_HI, r) * flow;
-    // 细丝：带通，取平方让边更柔、丝更细
+    // Filaments: squared band-pass response for softer edges and thinner strands.
     float rim = smoothstep(MBOX_GATE, MBOX_RIM0, r) * (1.0 - smoothstep(MBOX_RIM0, MBOX_RIM1, r));
     rim *= rim;
-    // 色相随位置缓慢游走：一屏之内既偏钢蓝也偏青绿，飞过去时整体还会变色
+    // Hue varies with position between steel blue and teal, and changes during drift.
     float hue = 0.5 + 0.5 * sin(dot(world, normalize(MBOX_HUE_DIR)) * MBOX_HUE_FREQ);
 
     float3 col = pow(MBOX_DEEP, 2.2) * base

@@ -1,5 +1,5 @@
-# 窗口失焦时去饱和；焦点事件触发重绘，无需周期帧。
-# 组内 var 隔离两个 fade 的参数。
+# Desaturate unfocused windows; focus events request redraws, with no periodic timer.
+# Group variables isolate the two fade configurations.
 
 startgroup
     animation_start os-window-focus-out

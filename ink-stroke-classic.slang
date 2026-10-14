@@ -1,20 +1,20 @@
 #language slang 2026
 // Author: zxzx.
-// 无状态光标笔触，只作用于背景；淡出由 Kitty cursor_trail_decay 控制。
+// Stateless background-only ink trail; cursor_trail_decay controls fading.
 
 import kitty_custom_shader_types;
 
-// 最浓时往墨色混多少。会被 ink-stroke.pipeline 里的 var 覆盖。
+// Maximum ink blend; overridden by the matching pipeline variable.
 static const float INK_STRENGTH = 0.12;
-// 墨色。
+// Ink color.
 static const float3 INK_COLOR = float3(1.0);
-// 笔尖半径，像素。往外是软边。
+// Nib radius in pixels, with a soft outer edge.
 static const float NIB_RADIUS = 15.0;
-// 笔尖中心这一圈占半径的比例，圈内是实心的。
+// Solid nib core as a fraction of its radius.
 static const float NIB_CORE = 0.25;
-// 判定「这是背景」的色彩容差（线性 RGB）。
+// Background color tolerance in linear RGB.
 static const float BG_TOLERANCE = 0.02;
-// 沾了墨的地方不透明度往 1 靠多少。
+// How strongly inked pixels approach full opacity.
 static const float INK_ALPHA_BOOST = 0.50;
 
 static float
@@ -26,11 +26,11 @@ seg_dist(float2 p, float2 a, float2 b) {
 
 public float4
 fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
-    // 拖尾活着的时候才有光标坐标；它自己的衰减决定这一笔现在多淡。
+    // Cursor geometry is available while the trail is active; its decay determines stroke opacity.
     float life = d.cursor_trail_state * d.cursor_trail_color.a;
     if (life <= 0.0) return color;
 
-    // 只压在背景上，字不碰。
+    // Apply only to background pixels, leaving text unchanged.
     float3 diff = abs(color.rgb - d.background.rgb);
     float bg = 1.0 - smoothstep(0.0, BG_TOLERANCE, max(max(diff.r, diff.g), diff.b));
     if (bg <= 0.0) return color;
@@ -41,12 +41,12 @@ fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
                         (d.cursor_trail_edge.z + d.cursor_trail_edge.w) * 0.5) * dims;
     float2 prev = float2((d.cursor_trail_prev_edge.x + d.cursor_trail_prev_edge.y) * 0.5,
                          (d.cursor_trail_prev_edge.z + d.cursor_trail_prev_edge.w) * 0.5) * dims;
-    // 光标第一次移动时 prev_edge 还是全零，直接用它会在左下角拉出一条长划。
+    // On the first cursor movement prev_edge is zero; ignore it to avoid a long stroke from the lower-left corner.
     float prev_ok = step(1e-5, d.cursor_trail_prev_edge.x + d.cursor_trail_prev_edge.y
                                + d.cursor_trail_prev_edge.z + d.cursor_trail_prev_edge.w);
     prev = lerp(cur, prev, prev_ok);
 
-    // 笔尖粗细跟着光标本身的大小走，但不小于一个下限。
+    // Scale the nib with the cursor, with a minimum radius.
     float nib = max(NIB_RADIUS, (d.cursor_trail_edge.y - d.cursor_trail_edge.x) * dims.x * 1.5);
     float k = (1.0 - smoothstep(nib * NIB_CORE, nib, seg_dist(pen, prev, cur))) * INK_STRENGTH * life;
     if (k <= 0.0) return color;

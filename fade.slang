@@ -1,26 +1,26 @@
 #language slang 2026
 // Author: zxzx.
-// 共用去饱和 shader：WHOLE_WINDOW 选择整窗或非活动分屏。
-// Kitty 按组分别编译；参数在各 pipeline 覆盖。
+// Shared desaturation shader; WHOLE_WINDOW selects the entire window or inactive splits.
+// Kitty compiles each group separately; pipeline variables override defaults.
 
 import kitty_custom_shader_types;
 
-// 是否整窗变淡。默认 false；window-fade 的那一组会覆盖成 true。
+// Fade the entire window; default false, overridden to true by window-fade.
 static const bool WHOLE_WINDOW = false;
-// 亮度系数，1 为不变。
+// Brightness multiplier; 1 leaves brightness unchanged.
 static const float FADE_DIM = 1.0;
-// 去饱和比例；不影响无色相的白字。
+// Desaturation strength; achromatic white text is unaffected.
 static const float FADE_DESAT = 0.20;
 public float4
 fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
-    // outside = 这个像素该变淡的程度：1 表示它属于「不活跃」的部分。
+    // outside is the fade weight; 1 indicates an inactive region.
     float outside = 1.0;
     if (!WHOLE_WINDOW) {
         float4 g = d.active_window_geometry;
         if (g.z > 0.0 && g.w > 0.0) {
             float2 dd = min(t.pos - g.xy, g.xy + g.zw - t.pos);
             float dmin = min(dd.x, dd.y);
-            // 使用硬边界，避免活动分屏最外一像素被羽化褪色。
+            // Use hard boundaries so the active split's edge pixels do not fade.
             outside = 1.0 - step(0.0, dmin);
         }
     }

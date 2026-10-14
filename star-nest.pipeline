@@ -1,13 +1,13 @@
-# 深空星野背景，署名见 star-nest.slang；背景四选一。
+# Deep-space background; attribution is in star-nest.slang. Use only one animated background.
 
-# NEB_BLACK：黑电平（原作 17 次迭代刻度）；越高越稀疏。
-# NEB_BRIGHT：星云亮度。NEB_SPEED：漂移速度，0 为静止。
+# NEB_BLACK: black level on the original 17-iteration scale; higher values reduce visible structure.
+# NEB_BRIGHT: nebula brightness; NEB_SPEED: drift speed, 0 disables drift.
 
-# 保留纹理声明，避免切换背景时改变纹理集合。
+# Keep the texture declaration to avoid changing the texture set when switching backgrounds.
 textures a
 
 startgroup
-    # 时间动画需要周期帧。
+    # Time-based animation requires periodic redraws.
     animation_step 400
     var float NEB_BLACK 18.0
     var float NEB_BRIGHT 0.0004

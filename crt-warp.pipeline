@@ -1,8 +1,8 @@
-# CRT 桶形位移，放在合成管线最后；无需周期帧。
+# CRT barrel distortion; place last in the chain. No periodic redraws.
 
-# 曲率，0 为关闭。
+# Curvature; 0 disables distortion.
 var float WARP 0.06
-# 横向 / 纵向弯曲比例。
+# Horizontal and vertical curvature ratios.
 var float WARP_X 0.3
 var float WARP_Y 0.4
 

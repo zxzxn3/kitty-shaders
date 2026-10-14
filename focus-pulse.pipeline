@@ -1,10 +1,10 @@
-# 窗口聚焦时脉动，周期帧只在动画期间申请。
+# Pulse on window focus; request periodic redraws only during the animation.
 
-# 峰值线性亮度。
+# Peak linear brightness.
 var float PULSE_PEAK 0.05
-# 从边缘向内的衰减距离（像素）。
+# Inward falloff distance from the edge, in pixels.
 var float PULSE_BAND_PX 48.0
-# 渐入占整段动画的比例。
+# Attack duration as a fraction of the complete animation.
 var float PULSE_ATTACK 0.12
 
 startgroup

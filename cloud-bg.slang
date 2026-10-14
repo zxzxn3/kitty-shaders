@@ -9,17 +9,17 @@
 
 import kitty_custom_shader_types;
 
-// ── 省电开关（会被 cloud-bg.pipeline 里的 var 覆盖）──
-static const int CLOUD_ROW_STRIDE = 4;   // 每几行算一次云，1 = 不抽样
-static const int CLOUD_LIGHT_TAPS = 1;   // 光照用几个额外 map 采样，原版 2
-static const int CLOUD_MAP_ITER = 4;     // 每步的形变迭代，原版 5
-static const int CLOUD_STEPS = 48;       // 步进数，原版 130
+// Performance controls, overridden by cloud-bg.pipeline.
+static const int CLOUD_ROW_STRIDE = 4;   // Row sampling stride; 1 computes every row.
+static const int CLOUD_LIGHT_TAPS = 1;   // Additional lighting samples; original value: 2.
+static const int CLOUD_MAP_ITER = 4;     // Deformation iterations per step; original value: 5.
+static const int CLOUD_STEPS = 48;       // Marching steps; original value: 130.
 
-// ── 观感参数 ──
-static const float CLOUD_TIME_SCALE = 0.2;  // 原版 timeScaling，越大云漂得越快
-static const bool CLOUD_MOUSE = false;      // 鼠标是否控制视角
+// Appearance controls.
+static const float CLOUD_TIME_SCALE = 0.2;  // Original timeScaling; higher values increase drift speed.
+static const bool CLOUD_MOUSE = false;      // Whether the mouse controls the view.
 
-// 实现细节
+// Implementation details.
 static const float3x3 M3 = float3x3(
      0.33338, -0.87887,  0.15162,
      0.56034,  0.32651,  0.69596,
@@ -81,7 +81,7 @@ cloud_render(float3 ro, float3 rd, float time, float prm1, float2 bsMo) {
             col *= den * den * den;
             col.rgb *= linstep(4.0, -2.5, mpv.x) * 2.3;
             float dif = clamp((den - cloud_map(pos + 0.8, time, prm1, bsMo).x) / 9.0, 0.001, 1.0);
-            if (CLOUD_LIGHT_TAPS > 1) {   // 原版还有一次 pos+0.35 的采样
+            if (CLOUD_LIGHT_TAPS > 1) {   // The original also samples pos + 0.35.
                 dif += clamp((den - cloud_map(pos + 0.35, time, prm1, bsMo).x) / 2.5, 0.001, 1.0);
             }
             col.xyz *= den * (float3(0.005, 0.045, 0.075) + 1.5 * float3(0.033, 0.07, 0.03) * dif);
@@ -120,9 +120,9 @@ public float4
 fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
     float2 res = max(float2(d.viewport_size_pixels) * t.viewport.zw, float2(1.0));
 
-    // 跳过未采样行；apply 仅在已计算的行之间插值。
+    // Skip unsampled rows; the apply pass interpolates only between computed rows.
     float yrow = floor(t.pos.y * res.y);
-    // fmod 就是 HLSL/Slang 里的取余（GLSL 的 mod 对负数才另有定义，而行号恒非负）。
+    // Slang fmod uses truncation; nonnegative row indices also match GLSL modulo.
     if (CLOUD_ROW_STRIDE > 1 && fmod(yrow, float(CLOUD_ROW_STRIDE)) > 0.5) {
         return float4(0.0, 0.0, 0.0, 1.0);
     }
@@ -155,8 +155,8 @@ fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
     float3 col = scn.rgb;
     col = iLerp(col.bgr, col.rgb, clamp(1.0 - prm1, 0.05, 1.0));
     col = pow(col, float3(0.55, 0.65, 0.6)) * float3(1.0, 0.97, 0.9);
-    col *= pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.12) * 0.7 + 0.3;  // 暗角
+    col *= pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.12) * 0.7 + 0.3;  // Vignette.
 
-    // 只算，不上色——亮度乘数和背景混合在 cloud-bg-apply 那一趟做。
+    // Compute only; brightness and blending are applied in cloud-bg-apply.
     return float4(col, 1.0);
 }
