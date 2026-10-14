@@ -1,6 +1,7 @@
 #language slang 2026
 // Slang port and Kitty adaptation by zxzx; cloud algorithm by nimitz (@stormoid).
 // Source: Protean Clouds, https://www.shadertoy.com/view/3l23Rh (CC BY-NC-SA 3.0).
+// This adaptation is also distributed under CC BY-NC-SA 3.0; see LICENSES/CC-BY-NC-SA-3.0.txt.
 // Preserve the deformation, volume integration and color interpolation algorithms.
 // Port GLSL matrices to row-major mul(); pass mutable globals as function parameters.
 // Reduce marching steps 130 -> 48, deformation iterations 5 -> 4, light taps 2 -> 1.

@@ -1,5 +1,6 @@
 #language slang 2026
 // Kitty integration and interpolation by zxzx.
+// Distributed under CC BY-NC-SA 3.0; see LICENSES/CC-BY-NC-SA-3.0.txt.
 // Interpolate cloud-bg texture a between sampled rows, then blend with the background.
 // Sample computed-row texel centers; use the same row indexing as the first pass.
 

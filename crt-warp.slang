@@ -1,6 +1,8 @@
 #language slang 2026
 // Kitty adaptation by zxzx; curvature formula retained from Kitty's crt.slang by Kovid Goyal.
 // Source: https://github.com/kovidgoyal/kitty/blob/master/kitty/shaders/custom/crt.slang (GPLv3).
+// Copyright (C) 2026 Kovid Goyal. Modified October 2026 for this collection.
+// Distributed under GPLv3; see LICENSES/GPL-3.0.txt and THIRD-PARTY-NOTICES.md.
 // Kitty credits https://www.shadertoy.com/view/WsVSzV (CC BY-NC-SA 3.0) as its original source.
 // Remove scanlines and tint; retain warped sampling alpha for transparent windows.
 // Expose horizontal/vertical curvature independently; use event-driven rather than periodic redraws.

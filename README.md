@@ -119,5 +119,10 @@ algorithms:
 - `cloud-bg`: [Protean Clouds](https://www.shadertoy.com/view/3l23Rh) by nimitz.
 - `star-nest`: [Star Nest](https://www.shadertoy.com/view/XlfGRj) by Pablo Roman Andrioli.
 - `crt-warp`: Kitty's [CRT shader](https://github.com/kovidgoyal/kitty/blob/master/kitty/shaders/custom/crt.slang) by Kovid Goyal, with its upstream attribution.
-- `magic-box`: the original source has not yet been verified; its fractal core
-  is not claimed as original work.
+- `magic-box`: adapted from [Star Nest Fractal MRI 2](https://www.shadertoy.com/view/Ml2yDw)
+  by Good, whose page credits [Magic Fractal](https://www.shadertoy.com/view/4ljGDd)
+  by dgreensp and Kali's Star Nest. Its fractal core is not claimed as original
+  work. The adaptation follows Shadertoy's default CC BY-NC-SA 3.0 license.
+
+This collection has no blanket license. See [third-party notices](THIRD-PARTY-NOTICES.md)
+for the per-file licenses, retained notices, and descriptions of modifications.

@@ -1,5 +1,9 @@
 #language slang 2026
-// Kitty adaptation and cold-color redesign by zxzx; original Magic Box source remains unverified.
+// Kitty adaptation and cold-color redesign by zxzx.
+// Adapted from "Star Nest Fractal MRI 2" by Good: https://www.shadertoy.com/view/Ml2yDw.
+// That page credits "Magic Fractal" by dgreensp: https://www.shadertoy.com/view/4ljGDd.
+// Distributed under CC BY-NC-SA 3.0, the Shadertoy default where no shader license is specified.
+// See THIRD-PARTY-NOTICES.md and LICENSES/CC-BY-NC-SA-3.0.txt.
 // Retain the fractal recurrence and reference matrix; do not claim authorship of that core.
 // Reduce iterations 12 -> 10; add background masking, flow/hue modulation, cool colors and alpha preservation.
 

@@ -1,4 +1,5 @@
 # Volumetric clouds adapted from nimitz's Protean Clouds (CC BY-NC-SA 3.0).
+# Distributed under CC BY-NC-SA 3.0; see LICENSES/CC-BY-NC-SA-3.0.txt.
 # Sample rows into texture a, then interpolate and blend; use only one animated background.
 
 # Marching steps: higher values add detail and cost; values below 32 can expose gaps.

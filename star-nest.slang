@@ -1,6 +1,8 @@
 #language slang 2026
 // Slang port and Kitty adaptation by zxzx; original Star Nest by Pablo Roman Andrioli.
 // Source: https://www.shadertoy.com/view/XlfGRj; retain the original source attribution.
+// Original Star Nest code: MIT; copyright (c) 2013 Pablo Roman Andrioli.
+// See LICENSES/Star-Nest-MIT.txt and THIRD-PARTY-NOTICES.md.
 // Preserve the tiled fractal recurrence and distance-based color accumulation.
 // Reduce volume steps 20 -> 16 and fractal iterations 17 -> 14; normalize iteration strength.
 // Add background-only masking, black level, reduced haze, exponential brightness cap and NaN guards.
