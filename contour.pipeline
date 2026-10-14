@@ -1,0 +1,7 @@
+# Static material; no animation timer and no auxiliary render targets.
+startgroup
+    animation_step 0
+    var int MATERIAL = 0
+    var float STRENGTH = 1.0
+    shaders surface
+endgroup

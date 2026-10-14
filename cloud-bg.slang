@@ -1,18 +1,11 @@
 #language slang 2026
-// cloud-bg —— 体积云背景。移植自 nimitz 的 "Protean clouds"
-//   https://www.shadertoy.com/view/3l23Rh
-//   作者 nimitz（twitter: @stormoid）；Onan 加过 timeScaling
-//   许可 CC BY-NC-SA 3.0：署名、非商业、相同方式共享
-//
-// 本文件只算云，而且每隔 CLOUD_ROW_STRIDE 行才算一次，结果写进临时纹理 a；
-// cloud-bg-apply.slang 再把相邻两条算过的行插值、铺到背景像素上。云是平滑场，
-// 垂直插值几乎无损，所以敢抽样（实测三项开关全开约 7 倍，平均色差 0.52/255）。
-//
-// 注意这一趟是**整屏都算**的：背景判定在 apply 那一趟才做，所以文字像素也逃不掉。
-// 这是它必须慢在 5fps 的根本原因。
-//
-// 移植时按原版语义处理的三处：M3/rot 写成行主序（GLSL 是列主序）、
-// p*m3 与 p.xy*=rot(a) 写成 mul(M, v)、原版的可变全局 prm1/bsMo 改成参数传入。
+// Slang port and Kitty adaptation by zxzx; cloud algorithm by nimitz (@stormoid).
+// Source: Protean Clouds, https://www.shadertoy.com/view/3l23Rh (CC BY-NC-SA 3.0).
+// Preserve the deformation, volume integration and color interpolation algorithms.
+// Port GLSL matrices to row-major mul(); pass mutable globals as function parameters.
+// Reduce marching steps 130 -> 48, deformation iterations 5 -> 4, light taps 2 -> 1.
+// Compute every fourth row into texture a; cloud-bg-apply interpolates and masks the background.
+// Expose timing, sampling and brightness controls through the Kitty pipeline.
 
 import kitty_custom_shader_types;
 
@@ -127,8 +120,7 @@ public float4
 fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
     float2 res = max(float2(d.viewport_size_pixels) * t.viewport.zw, float2(1.0));
 
-    // 行抽样：这一行不归本轮算，直接交回去（apply 那一趟只会采样算过的行）。
-    // 这个分支对 GPU 很友好——一个 warp 覆盖的是同一行的连续像素，所以整块 warp 一起跳过。
+    // 跳过未采样行；apply 仅在已计算的行之间插值。
     float yrow = floor(t.pos.y * res.y);
     // fmod 就是 HLSL/Slang 里的取余（GLSL 的 mod 对负数才另有定义，而行号恒非负）。
     if (CLOUD_ROW_STRIDE > 1 && fmod(yrow, float(CLOUD_ROW_STRIDE)) > 0.5) {

@@ -1,9 +1,7 @@
 #language slang 2026
-// cloud-bg-apply —— cloud-bg 的第二趟：把按行抽样算出来的云插值，再铺到背景像素上。
-//
-// 用 attach 跟着第一组启停，所以读到的临时纹理 a 一定是同一帧写好的。
-// 两个采样点取的是「相邻两条算过的行」的 texel 中心，硬件双线性才不会掺进没算的行；
-// 行号计算必须和 cloud-bg.slang 完全一致。
+// Kitty integration and interpolation by zxzx.
+// 按行插值 cloud-bg 的纹理 a，再混合背景。
+// 采样位置须落在已计算行的 texel 中心，行号算法与第一趟一致。
 
 import kitty_custom_shader_types;
 
@@ -16,8 +14,7 @@ static const float BG_TOLERANCE = 0.02;
 
 public float4
 fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
-    // 只画背景像素，字不碰。（这一趟读的 backbuffer 还是 kitty 原始渲染，
-    // 因为第一趟写的是临时纹理，所以这个判定的语义和 bg-drift / 墨痕一致。）
+    // 第一趟只写纹理 a，此处 backbuffer 仍可用于背景比色。
     float3 diff = abs(color.rgb - d.background.rgb);
     float bg = 1.0 - smoothstep(0.0, BG_TOLERANCE, max(max(diff.r, diff.g), diff.b));
     if (bg <= 0.0) return color;
@@ -36,7 +33,6 @@ fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
     float3 c1 = t.a.Sample(float2(t.pos.x, (y1 + 0.5) / res.y)).rgb;
     float3 col = lerp(c0, c1, f);
 
-    // 云的亮度乘数在这里：原图亮度(1.0)平均 0.45 线性，白字没法读；
-    // 0.12 实测平均 0.045、峰值 0.11。
+    // 应用亮度和背景混合比例。
     return float4(lerp(color.rgb, col * CLOUD_STRENGTH, bg * CLOUD_MIX), color.a);
 }

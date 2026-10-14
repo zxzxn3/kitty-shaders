@@ -1,54 +1,50 @@
-# kitty 自定义 shader
+# Kitty shaders
 
-代码是唯一事实来源：每个效果的旋钮都在它自己的 `.pipeline` / `.slang` 注释里。
-这份文档只讲「有哪些效果、怎么开、怎么改生效、踩过哪些坑」。
+当前启用组合见 `../kitty.conf` 的 `custom_shaders`。调参见各 `.pipeline` / `.slang`；
+修改 shader 后递增 `kitty.conf` 中的 `shader-rev` 以触发重载，Kitty 不直接监听 shader 文件。
 
-## 组成
+## 效果与组合
 
-| 效果 | 文件 | 做什么 | 实测成本 |
-|---|---|---|---|
-| ink-stroke | `ink-stroke.*` | 光标移动时留一道白色笔触 | ≈0，事件驱动 |
-| focus-pulse | `focus-pulse.*` | 获得焦点时边缘呼吸一次 | ≈0，只在 600ms 动画期要帧 |
-| layout-fade | `fade.slang` + `layout-fade.pipeline` | 非活动分屏去饱和 | ≈0，事件驱动 |
-| window-fade | `fade.slang` + `window-fade.pipeline` | 失焦的整个 OS 窗口去饱和 | ≈0，事件驱动 |
-| star-hash | `star-hash.*` | 哈希星场，两层视差 | ~5 ns/px |
-| magic-box | `magic-box.*` | 魔盒分形，冷色深海细丝 | ~6 ns/px |
-| star-nest | `star-nest.*` | 分形星野 | ~50 ns/px |
-| cloud-bg | `cloud-bg.*` + `cloud-bg-apply.*` | 体积云，两趟 | ~300 ns/px |
+| 效果 | 用途 |
+| --- | --- |
+| ink-stroke-classic | 经典光标笔触 |
+| ink-stroke | 短余像笔触；TRAIL_LENGTH、RIM_STRENGTH、HALO_STRENGTH、INK_STRENGTH 控制长度、高光、软晕和主体 |
+| pearl | 静态石墨珠光背景；PEARL_STRENGTH 控制强度 |
+| vellum / contour | 暖灰纸面 / 细等高线材质；共用 surface.slang，STRENGTH 控制强度 |
+| edge-light | 聚焦后 240ms 边缘亮光，结束后停止主动重绘 |
+| focus-pulse | 聚焦时边缘脉动 |
+| layout-fade / window-fade | 分屏 / 窗口失焦时去饱和，共用 fade.slang |
+| star-hash / magic-box / star-nest / cloud-bg | 动态背景，四选一 |
+| crt-warp | 整屏桶形畸变 |
 
-ns/px 是 llvmpipe 软件光栅、640×360 整屏当背景时的实测值，只用来比数量级：
-三个小效果和空管线（1.7 ns/px）没有区别，四个背景之间差 10~60 倍。
+组合顺序：笔触 → 背景 → layout-fade → window-fade → 聚焦效果 → crt-warp。
+背景只开一个，位移效果最后执行；试用 edge-light 时放在材质前面。
+移除背景项即恢复原背景，笔触可在 ink-stroke 与 ink-stroke-classic 之间替换。
 
-## 顺序与互斥
+背景与笔触按背景色比色，保留 alpha；图片中近背景色的区域也可能受影响，
+并非按字符语义识别的遮罩。静态材质没有持续计时器，但光标动画仍可能触发重绘；
+实际 GPU 开销未测。
 
-四个背景（`star-hash` / `star-nest` / `cloud-bg` / `magic-box`，加上 `bg-drift` 分支上的
-第五个）**同时只能开一个**：它们都靠「和 `d.background` 比色」认背景，先跑的那个会把背景
-染色，后面的就认不出来了。`ink-stroke` 和两个 fade 用同一个判据，所以顺序必须是
+## 修改约束
 
-    ink-stroke → 背景 → layout-fade → window-fade →（focus-pulse）
+- 依赖 `d.timestamp` 的动画需要非零 `animation_step`；0 只随其他重绘运行。
+- Slang 的 `fmod` 是截断余数；GLSL 的 floor 语义应写作 `x - y*floor(x/y)`。
+  矩阵字面量为行主序，移植 GLSL 时核对转置和 `mul` 顺序。
+- 同一趟不能读写同一张命名纹理，否则 Kitty 会回退到 backbuffer。
+- pipeline 顶层 `var` 全局按名称替换；需隔离的参数放进 `startgroup` / `endgroup`。
+- cloud-bg 热重载若遮住文字，调整窗口尺寸或换屏；`SIGUSR1` 无效。
+  各背景保留 `textures a` 以减少该问题。
 
-## 启用
+## 仓库与安装
 
-改 `kitty.conf` 的 `custom_shaders` 那一行。文件里已经并列写好四种组合，留一行生效：
+本仓库仅管理 shader；`kitty.conf` 由 cfg 管理。安装位置为
+`~/.config/kitty/shaders/`，也可通过 cfg 的 submodule 部署。
+仓库目前私有，克隆需要 GitHub 认证。
 
-    custom_shaders ink-stroke star-hash layout-fade window-fade focus-pulse
+```sh
+git clone https://github.com/zxzxn3/kitty-shaders.git ~/.config/kitty/shaders
+```
 
-## 改完怎么生效
-
-kitty 的 `auto_reload_config` 只监听 `kitty.conf`，**不监听 `shaders/`**。所以改完 shader
-要把 `kitty.conf` 里的 `shader-rev: N` 顺手 +1。改窗口尺寸、把它挪到别的屏幕也会触发重建，
-调试时更快。
-
-## 踩过的坑
-
-* `animation_step 0` = 不申请周期帧，只在别的原因重绘时顺带跑一遍。**任何依赖
-  `d.timestamp` 的效果都不能用 0**：那样「动没动」会被重绘频率绑架 —— TUI 里看着正常，
-  空闲/失焦/滚屏时冻住，滚一格又跳一下。三个事件驱动的效果用 0 是对的。
-* Slang 不是 GLSL：`mod` 只有截断语义的 `fmod`，GLSL 的 floor 语义要自己写
-  `x - y*floor(x/y)`；矩阵字面量是行主序（GLSL 是列主序，照抄等于转置），
-  GLSL 的 `p*m` 要写成 `mul(M, v)`。
-* **同一趟里不能同时读写同一张命名纹理**，kitty 会静默换成 backbuffer。
-* pipeline 级的 `var` 是全局按名字替换的，**必须写在 `startgroup`…`endgroup` 里**，
-  否则同名常量互相覆盖（两个 fade 共用 `fade.slang` 就靠这个）。
-* cloud-bg 热重载后可能整屏被云糊住、字看不见：`SIGUSR1` 重载无效，改一下窗口尺寸或
-  挪到另一个屏幕就好。四个背景都写了 `textures a` 来规避，未彻底根治。
+修改后先在此库提交并推送，再提交 cfg 中的子模块版本引用。
+`git submodule update` 通常检出 detached HEAD；编辑并创建新提交前
+请切回 `main` 分支。

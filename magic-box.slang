@@ -1,17 +1,7 @@
 #language slang 2026
-// magic-box —— 魔盒分形背景（"深海潜流"版）
-//
-// 原作：用户给的这段 "Magic Box"（Shadertoy；作者署名我没核实）。
-//
-// 数学照原作一行没改：坐标折进 1×1×1 的镜子盒子 p = 1 - |1 - mod(p, 2)|；
-// 迭代 p = |p| / |p_上一轮|² - MAGIC，累加每次长度变化的绝对值，累加值就是场值
-// （**除的是上一轮的长度，不是当前 p 自己的长度**，抄成 dot(p,p) 会得到另一套花样）；
-// 相机沿固定的 3×3 矩阵旋转，z 随时间推进。
-//
-// 观感是我自己定的，和原作差得远（照原作做出来是橙红"熔岩珊瑚"，太刺激）：近黑深海蓝底 +
-// 只在中间那层浮现的淡青带通细丝，色彩随位置缓慢游走（左偏钢蓝、右偏青绿），
-// 也就是"低饱和、冷色、有变化"。改造的四件事：输出做 pow(x, 2.2) 转线性（kitty 是线性 RGB，
-// 否则亮得发艳）、只画背景像素、上色改成"低值留暗 + 中间带通"所以黑底为主、迭代 12 → 10。
+// Kitty adaptation and cold-color redesign by zxzx; original Magic Box source remains unverified.
+// Retain the fractal recurrence and reference matrix; do not claim authorship of that core.
+// Reduce iterations 12 -> 10; add background masking, flow/hue modulation, cool colors and alpha preservation.
 
 import kitty_custom_shader_types;
 

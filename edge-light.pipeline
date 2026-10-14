@@ -1,0 +1,7 @@
+# One 240ms light on focus; no background animation.
+startgroup
+    animation_start os-window-focus-in
+    animation_stop 240
+    animation_step 33
+    shaders edge-light
+endgroup

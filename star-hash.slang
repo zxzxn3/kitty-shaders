@@ -1,13 +1,7 @@
 #language slang 2026
-// star-hash —— 哈希星场背景（两层视差版）
-//
-// 格子哈希撒星星：像素按格子边长切开，每格用哈希决定这颗星存不存在、落在格子哪一点、
-// 多亮、多大、偏冷还是偏暖，然后只算自己的 3×3 邻域，按距离衰减成小圆点。
-// 同一套逻辑跑两遍就是视差：近景层格子大、星点大、亮、全速漂；远景层细一半、暗一半、
-// 只走 STAR_FAR_SPEED 倍的速度。
-//
-// 哈希函数来自 Dave Hoskins 的 "Hash without Sine"（MIT）。
-// 只画背景像素（和背景色比色），所以和另外几个背景互斥。
+// Author: zxzx. Two-layer parallax starfield with background-only masking.
+// hash21 uses Dave Hoskins' Hash without Sine formula (MIT).
+// Formula source: https://www.shadertoy.com/view/4djSRW
 
 import kitty_custom_shader_types;
 
@@ -44,8 +38,7 @@ star_layer(float2 sky, float cell_px, float density, float radius_px, float brig
     float2 cell = floor(sky / cell_px);
     float2 fx = sky - cell * cell_px;                 // 像素落在自己这一格里的位置
     float rmax = radius_px * 1.3;                     // 星的最大半径（下面 radius 那行的上限）
-    // 到左/中/右三个邻居格的横向间隙（都 ≥ 0），纵向同理。间隙是可分的，
-    // 所以一次算 6 个数就够 3×3 用；够不着圆形的格子连哈希都不必算。
+    // 预计算横纵各三个间隙，跳过星点半径覆盖不到的格子。
     float3 gx = float3(fx.x, 0.0, cell_px - fx.x);
     float3 gy = float3(fx.y, 0.0, cell_px - fx.y);
     float rmax2 = rmax * rmax;

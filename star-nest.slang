@@ -1,11 +1,10 @@
 #language slang 2026
-// star-nest —— 深空星野背景
-// 原作："Star Nest" by Pablo Roman Andrioli（Shadertoy）；署名、许可以原作为准。
-//
-// 分形那两重循环 + 平铺折叠是效果本体（注意 glsl_mod：GLSL 的 mod 是 floor 语义，
-// Slang 的 fmod 是截断语义，这里坐标有负值，照抄会得到另一片天）。
-// 原版从鼠标取的相机倾角删掉了（鼠标关掉后它是常数，只是换一片随机等价的星空）。
-// 为了「黑背景 + 不要大光斑」加了黑电平、亮度上限、慢漂移三处，见下。
+// Slang port and Kitty adaptation by zxzx; original Star Nest by Pablo Roman Andrioli.
+// Source: https://www.shadertoy.com/view/XlfGRj; retain the original source attribution.
+// Preserve the tiled fractal recurrence and distance-based color accumulation.
+// Reduce volume steps 20 -> 16 and fractal iterations 17 -> 14; normalize iteration strength.
+// Add background-only masking, black level, reduced haze, exponential brightness cap and NaN guards.
+// Preserve alpha; use floor-based GLSL modulo and expose slow camera drift through the pipeline.
 
 import kitty_custom_shader_types;
 
@@ -17,8 +16,7 @@ static const float NEB_SPEED = 0.0025;   // 漂移速度，0 = 完全静止
 // ── 实现细节 ──
 static const int NEB_STEPS = 16;
 static const int NEB_ITER = 14;
-// 黑电平是按原作 17 次迭代的刻度标的（分形值中位数约 14.6）。这里迭代数不同，
-// 累加出来的 a 近似成正比，所以乘这个系数换算回 17 次的刻度，黑电平才不用跟着改。
+// 按迭代数换算回原作 17 次迭代刻度，保持黑电平含义。
 static const float NEB_ANORM = 17.0 / 14.0;
 static const float NEB_HAZE = 0.02;    // 原作那层让整屏发灰的底噪（原值 1.0），只留一点
 static const float NEB_SAT = 0.85;     // 原作 saturation
@@ -49,7 +47,7 @@ fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
     uv.y *= res.y / res.x;               // 长宽比校正，星点是各向同性的
     float3 dir = float3(uv * NEB_ZOOM, 1.0);
 
-    // 相机。原版还在这里乘两个鼠标倾角，这里没有了；时间只让它沿自己的线慢慢往前。
+    // 相机沿固定方向漂移。
     float time = d.timestamp * NEB_SPEED + 0.25;
     float3 frm = float3(1.0 + 2.0 * time, 0.5 + time, 0.5 - 2.0 * time);
 
@@ -80,8 +78,7 @@ fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
     }
 
     v = lerp(float3(length(v)), v, NEB_SAT);
-    // 软上限：亮的地方指数压进 NEB_PEAK，低亮度几乎不受影响。硬钳会在最亮那几团上
-    // 压出一块实心白斑，指数版把它换成没有平台的渐变。
+    // 指数软上限避免亮部形成实心白斑。
     float3 col = NEB_PEAK * (1.0 - exp(-v * NEB_SCALE / NEB_PEAK));
     return float4(lerp(color.rgb, col, bg), color.a);
 }

@@ -1,17 +1,15 @@
-# ink-stroke —— 光标移动时留下一道柔和的白色笔触。
-#
-# 单组、事件驱动、无状态：从 cursor-trail-move 到 cursor-trail-stop。
-# 两个前提（都在 kitty.conf 里）：订阅 cursor-trail-move 会抑制 kitty 内置的拖尾绘制；
-# 光标坐标只能从拖尾几何里拿，所以需要 cursor_trail_start_threshold 1
-# （默认值 2 会跳过单格移动，打字时就不出笔触）。
+# 光标笔触；订阅拖尾事件会取代 Kitty 内置拖尾。
+# 需设 cursor_trail_start_threshold 1，才能捕获单格移动。
 
-# ── 可调参数（这个效果的所有旋钮都在这里）──
-# 最浓时往墨色混多少。0.12 约等于原来墨痕刚落笔时那一档。
+# 墨色混合强度。
 var float INK_STRENGTH 0.12
-# 墨色。想要彩色墨就改这里，写法是 float3(r, g, b)，范围 0..1。
+# 墨色，线性 RGB，范围 0..1。
 var float3 INK_COLOR float3(1.0, 1.0, 1.0)
 
 startgroup
+    var float TRAIL_LENGTH 72.0
+    var float RIM_STRENGTH 0.065
+    var float HALO_STRENGTH 0.025
     animation_start cursor-trail-move
     animation_stop cursor-trail-stop
     animation_step 16

@@ -1,10 +1,6 @@
 #language slang 2026
-// focus-pulse —— 一个窗口获得焦点时，内容区边缘有一次很轻的"呼吸"。
-//
-// 单组、事件驱动、无状态，触发条件 os-window-focus-in（=这个 OS 窗口获得键盘焦点）。
-// 附带的已知行为：kitty 在管线载入后的第一帧也会补发一次该事件，所以每次重载配置时
-// 当前窗口也会脉动一下——正好当成"shader 已经重新加载"的信号。
-// 带 PULSE_ 前缀的常量会被 pipeline 的组内 var 覆盖——调参改那个文件。
+// Author: zxzx.
+// 聚焦时边缘脉动；Kitty 重载后的首帧也会触发。参数见 pipeline。
 
 import kitty_custom_shader_types;
 
@@ -26,8 +22,7 @@ fragment_main(float4 color, KittyTextures t, KittyCustomShaderData d) {
     float band = 1.0 - smoothstep(0.0, PULSE_BAND_PX, dmin);
     if (band <= 0.0) return color;
 
-    // envelope：平滑起手，然后落到 0。progress 由 pipeline 给成线性的，
-    // 所以这里的形状就是最终看到的形状。
+    // 对 pipeline 的线性 progress 应用渐入、渐出包络。
     float p = clamp(t.animation_progress, 0.0, 1.0);
     float env = (1.0 - p) * smoothstep(0.0, PULSE_ATTACK, p);
     if (env <= 0.0) return color;

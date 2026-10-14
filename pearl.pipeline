@@ -1,0 +1,6 @@
+# Static pearl graphite: one pass, no animation clock or texture history.
+startgroup
+    animation_step 0
+    var float PEARL_STRENGTH 1.0
+    shaders pearl
+endgroup

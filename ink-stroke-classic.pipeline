@@ -1,0 +1,14 @@
+# 光标笔触；订阅拖尾事件会取代 Kitty 内置拖尾。
+# 需设 cursor_trail_start_threshold 1，才能捕获单格移动。
+
+# 墨色混合强度。
+var float INK_STRENGTH 0.12
+# 墨色，线性 RGB，范围 0..1。
+var float3 INK_COLOR float3(1.0, 1.0, 1.0)
+
+startgroup
+    animation_start cursor-trail-move
+    animation_stop cursor-trail-stop
+    animation_step 16
+    shaders ink-stroke-classic
+endgroup
