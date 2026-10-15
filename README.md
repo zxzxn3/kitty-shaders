@@ -46,7 +46,6 @@ for loading paths and the pipeline API.
 | `ink-stroke-classic` | Background-only cursor ink trail |
 | `ink-stroke` | Short trail with rim and halo controls |
 | `pearl` | Static graphite pearl surface |
-| `vellum` | Warm paper-like surface |
 | `contour` | Subtle contour-line surface |
 | `edge-light` | Brief edge light when the window gains focus |
 | `focus-pulse` | Edge pulse on focus |
@@ -57,6 +56,27 @@ for loading paths and the pipeline API.
 | `star-nest` | Deep-space fractal background |
 | `cloud-bg` | Volumetric clouds with a two-pass sampling pipeline |
 | `crt-warp` | Barrel distortion |
+
+## Background previews
+
+### Star hash
+
+![Animated starfield](https://raw.githubusercontent.com/zxzxn3/kitty-shaders/main/assets/backgrounds/star-hash.gif)
+
+### Clouds
+
+![Animated clouds](https://raw.githubusercontent.com/zxzxn3/kitty-shaders/main/assets/backgrounds/cloud-bg.gif)
+
+### Contour
+
+![Contour-line surface](https://raw.githubusercontent.com/zxzxn3/kitty-shaders/main/assets/backgrounds/contour.png)
+
+### Pearl
+
+![Graphite pearl surface](https://raw.githubusercontent.com/zxzxn3/kitty-shaders/main/assets/backgrounds/pearl.png)
+
+Animated previews show four seconds at the original speed. Captured in Kitty
+with an opaque background and no terminal content.
 
 ## Combining effects
 
